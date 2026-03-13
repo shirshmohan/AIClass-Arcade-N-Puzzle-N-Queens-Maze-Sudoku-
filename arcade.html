@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARCADE — Puzzle Games</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0c0c0f; --surface:#16161a; --surface2:#1e1e24; --surface3:#26262e;
+  --border:#2a2a36; --border2:#38384a;
+  --accent:#c8f060; --accent-dim:rgba(200,240,96,0.12);
+  --accent2:#60c8f0; --accent2-dim:rgba(96,200,240,0.1);
+  --gold:#f0c060; --gold-dim:rgba(240,192,96,0.12);
+  --purple:#c060f0; --purple-dim:rgba(192,96,240,0.12);
+  --teal:#60f0c0; --teal-dim:rgba(96,240,192,0.12);
+  --warn:#f0a060; --bad:#f06060;
+  --text:#efeff4; --text-dim:#6a6a7a; --text-mid:#9a9aaa;
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(200,240,96,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(200,240,96,0.018) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0}
+
+/* SCREEN SYSTEM */
+.screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:10;transition:opacity 0.4s ease,transform 0.4s ease;overflow-y:auto}
+.screen.hidden{opacity:0;pointer-events:none;transform:translateY(14px)}
+
+/* HOME */
+#home-screen{flex-direction:column;padding:28px 16px 48px}
+.home-inner{position:relative;z-index:1;width:100%;max-width:760px;display:flex;flex-direction:column;align-items:center}
+.home-glow{position:absolute;top:-100px;left:50%;transform:translateX(-50%);width:500px;height:400px;background:radial-gradient(circle,rgba(200,240,96,0.07) 0%,transparent 70%);pointer-events:none}
+.home-logo{font-family:'Playfair Display',serif;font-size:clamp(3.5rem,12vw,6.5rem);font-weight:900;letter-spacing:-4px;line-height:0.88;text-align:center;background:linear-gradient(135deg,var(--accent) 0%,#a0f0b0 45%,var(--accent2) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px;animation:logoIn 0.7s cubic-bezier(0.34,1.4,0.64,1) both}
+@keyframes logoIn{from{opacity:0;transform:scale(0.75) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.home-tagline{font-family:'DM Mono',monospace;font-size:0.66rem;letter-spacing:4px;text-transform:uppercase;color:var(--text-dim);margin-bottom:44px;animation:fadeUp 0.6s 0.18s both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.game-grid{width:100%;display:grid;grid-template-columns:repeat(2,1fr);gap:14px;animation:fadeUp 0.7s 0.3s both}
+@media(max-width:520px){.game-grid{grid-template-columns:1fr}}
+.game-card{background:var(--surface);border:2px solid var(--border);border-radius:20px;padding:24px 20px 20px;cursor:pointer;transition:all 0.22s;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.game-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity 0.22s}
+.game-card.c-green::before{background:var(--accent-dim)}
+.game-card.c-gold::before{background:var(--gold-dim)}
+.game-card.c-purple::before{background:var(--purple-dim)}
+.game-card.c-teal::before{background:var(--teal-dim)}
+.game-card.c-green:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 12px 40px rgba(200,240,96,0.1)}
+.game-card.c-gold:hover{border-color:var(--gold);transform:translateY(-3px);box-shadow:0 12px 40px rgba(240,192,96,0.1)}
+.game-card.c-purple:hover{border-color:var(--purple);transform:translateY(-3px);box-shadow:0 12px 40px rgba(192,96,240,0.1)}
+.game-card.c-teal:hover{border-color:var(--teal);transform:translateY(-3px);box-shadow:0 12px 40px rgba(96,240,192,0.1)}
+.game-card:hover::before{opacity:1}
+.gc-icon{font-size:2.4rem;margin-bottom:12px;line-height:1}
+.gc-tag{font-family:'DM Mono',monospace;font-size:0.54rem;letter-spacing:2.5px;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px}
+.gc-title{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:900;letter-spacing:-0.5px;margin-bottom:8px;line-height:1.1}
+.c-green .gc-title{color:var(--accent)} .c-gold .gc-title{color:var(--gold)} .c-purple .gc-title{color:var(--purple)} .c-teal .gc-title{color:var(--teal)}
+.gc-desc{font-size:0.76rem;color:var(--text-mid);line-height:1.5;margin-bottom:14px;flex:1}
+.gc-pills{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
+.gc-pill{font-family:'DM Mono',monospace;font-size:0.52rem;letter-spacing:0.5px;padding:3px 8px;border-radius:20px;border:1px solid var(--border);color:var(--text-dim)}
+.gc-btn{width:100%;padding:10px;border:none;border-radius:10px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.84rem;font-weight:700;transition:all 0.18s}
+.c-green .gc-btn{background:var(--accent);color:#111} .c-green .gc-btn:hover{background:#d8ff70}
+.c-gold  .gc-btn{background:var(--gold);color:#111}  .c-gold  .gc-btn:hover{background:#ffd070}
+.c-purple .gc-btn{background:var(--purple);color:#111} .c-purple .gc-btn:hover{background:#d870ff}
+.c-teal  .gc-btn{background:var(--teal);color:#111}   .c-teal  .gc-btn:hover{background:#70ffd8}
+
+/* SHARED GAME LAYOUT */
+.game-wrapper{position:relative;z-index:1;width:100%;max-width:1060px;margin:0 auto;padding:18px 14px 48px;display:flex;flex-direction:column}
+.game-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.game-logo{font-family:'Playfair Display',serif;font-size:1.7rem;font-weight:900;letter-spacing:-1px}
+.game-badge{font-family:'DM Mono',monospace;font-size:0.56rem;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase}
+.back-btn{font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:2px;padding:7px 16px;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;color:var(--text-mid);cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:5px}
+.back-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);transform:translateX(-2px)}
+.game-body{display:grid;grid-template-columns:195px 1fr 195px;gap:16px;align-items:start}
+@media(max-width:760px){.game-body{grid-template-columns:1fr}.panel-left{order:2}.board-col{order:1}.panel-right{order:3}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.panel-title{font-family:'DM Mono',monospace;font-size:0.56rem;letter-spacing:2.5px;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px;padding-bottom:9px;border-bottom:1px solid var(--border)}
+.btn{display:block;width:100%;padding:8px 12px;margin-bottom:6px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:500;cursor:pointer;outline:none;text-align:center;transition:all 0.15s;border:1px solid var(--border);background:var(--surface2);color:var(--text)}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn-green{background:var(--accent);color:#111;border-color:var(--accent);font-weight:700}  .btn-green:hover{background:#d8ff70;color:#111}
+.btn-gold{background:var(--gold);color:#111;border-color:var(--gold);font-weight:700}        .btn-gold:hover{background:#ffd070;color:#111}
+.btn-purple{background:var(--purple);color:#111;border-color:var(--purple);font-weight:700}   .btn-purple:hover{background:#d870ff;color:#111}
+.btn-teal{background:var(--teal);color:#111;border-color:var(--teal);font-weight:700}         .btn-teal:hover{background:#70ffd8;color:#111}
+.btn-blue{background:transparent;color:var(--accent2);border-color:var(--accent2)}            .btn-blue:hover{background:var(--accent2-dim)}
+.btn:disabled{opacity:0.35;cursor:not-allowed}
+.btn-divider{height:1px;background:var(--border);margin:8px 0}
+select{width:100%;padding:7px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.78rem;cursor:pointer;outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236a6a7a'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;transition:border-color 0.2s;margin-bottom:8px}
+select:focus{border-color:var(--accent)}
+.cfg-group{margin-bottom:10px}
+.cfg-label{font-size:0.72rem;color:var(--text-dim);margin-bottom:4px}
+.stat-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.stat-label{font-size:0.72rem;color:var(--text-dim)}
+.stat-val{font-family:'DM Mono',monospace;font-size:0.95rem;font-weight:500;color:var(--text)}
+.stat-val.green{color:var(--accent)} .stat-val.blue{color:var(--accent2)} .stat-val.gold{color:var(--gold)} .stat-val.purple{color:var(--purple)} .stat-val.teal{color:var(--teal)}
+.coach-bubble{background:var(--surface2);border-radius:10px;padding:11px 12px;border-left:3px solid var(--accent);transition:border-color 0.4s;margin-top:10px}
+.coach-bubble.gold{border-left-color:var(--gold)} .coach-bubble.bad{border-left-color:var(--bad)} .coach-bubble.warn{border-left-color:var(--warn)} .coach-bubble.purple{border-left-color:var(--purple)} .coach-bubble.teal{border-left-color:var(--teal)} .coach-bubble.blue{border-left-color:var(--accent2)}
+.coach-main{font-size:0.78rem;line-height:1.5;color:var(--text);font-weight:600;margin-bottom:5px}
+.coach-sub{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--text-dim);font-style:italic;line-height:1.45;min-height:26px;transition:opacity 0.5s}
+.pulse{animation:pulseAnim 1s ease-in-out infinite alternate}
+@keyframes pulseAnim{to{opacity:0.25}}
+.board-col{display:flex;flex-direction:column;align-items:center;gap:10px}
+
+/* WIN OVERLAY */
+.win-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.win-overlay.show{display:flex}
+.win-card{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:36px 44px;text-align:center;max-width:400px;width:90%;box-shadow:0 24px 80px rgba(0,0,0,0.85);animation:winPop 0.45s cubic-bezier(0.34,1.4,0.64,1) both}
+@keyframes winPop{from{transform:scale(0.6) translateY(24px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+.win-emoji{font-size:3rem;margin-bottom:10px;line-height:1}
+.win-title{font-family:'Playfair Display',serif;font-size:2rem;font-weight:900;margin-bottom:4px}
+.win-sub{font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:18px}
+.win-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.win-stat{background:var(--surface2);border-radius:10px;padding:9px 5px}
+.win-stat-n{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700}
+.win-stat-l{font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:1px;color:var(--text-dim);text-transform:uppercase;margin-top:2px}
+.win-msg{font-family:'DM Mono',monospace;font-size:0.66rem;color:var(--text-mid);font-style:italic;line-height:1.5;margin-bottom:18px;padding:9px 12px;background:var(--surface2);border-radius:8px}
+.win-btns{display:flex;gap:8px}
+.win-btn{flex:1;padding:12px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.84rem;font-weight:600;cursor:pointer;border:none;transition:all 0.18s}
+.win-btn-sec{background:var(--surface2);color:var(--text);border:1px solid var(--border)} .win-btn-sec:hover{border-color:var(--accent);color:var(--accent)}
+
+/* TOAST */
+#skill-toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(80px);z-index:999;background:#1a0a0a;border:1px solid var(--bad);border-radius:14px;padding:14px 50px 14px 22px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 40px rgba(240,96,96,0.22);opacity:0;transition:transform 0.45s cubic-bezier(0.34,1.4,0.64,1),opacity 0.35s ease;pointer-events:none;min-width:250px;max-width:90vw}
+#skill-toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast-wave{position:absolute;right:16px;top:50%;transform:translateY(-50%);display:flex;gap:2px;align-items:center}
+.toast-wave span{width:3px;border-radius:2px;background:var(--bad);animation:waveBar 0.8s ease-in-out infinite alternate}
+.toast-wave span:nth-child(1){height:8px} .toast-wave span:nth-child(2){height:16px;animation-delay:.15s} .toast-wave span:nth-child(3){height:12px;animation-delay:.3s} .toast-wave span:nth-child(4){height:20px;animation-delay:.1s} .toast-wave span:nth-child(5){height:8px;animation-delay:.25s}
+@keyframes waveBar{from{transform:scaleY(0.4);opacity:0.5}to{transform:scaleY(1);opacity:1}}
+
+/* CONFETTI */
+.confetti-piece{position:fixed;pointer-events:none;z-index:300;animation:confettiFall linear forwards}
+@keyframes confettiFall{0%{transform:translateY(-30px) rotate(0deg);opacity:1}80%{opacity:1}100%{transform:translateY(106vh) rotate(900deg);opacity:0}}
+
+/* ============ N-PUZZLE SPECIFIC ============ */
+#board-frame{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:7px;box-shadow:0 14px 50px rgba(0,0,0,0.7)}
+.board-grid{display:grid;gap:7px}
+.tile{display:flex;align-items:center;justify-content:center;border-radius:11px;background:linear-gradient(150deg,#2b2b3a 0%,#1b1b26 100%);border:1px solid var(--border2);box-shadow:0 3px 10px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.07),inset 0 -1px 0 rgba(0,0,0,0.3);cursor:pointer;user-select:none;font-family:'Playfair Display',serif;font-weight:700;color:var(--text);transition:border-color 0.12s,box-shadow 0.12s,transform 0.12s}
+.tile.blank{background:transparent;border:2px dashed rgba(200,240,96,0.1);box-shadow:none;cursor:default}
+.tile.movable:hover{border-color:var(--accent);box-shadow:0 0 0 2px rgba(200,240,96,0.22),0 6px 18px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.07);transform:scale(1.05);z-index:10}
+.tile.hint-tile{border-color:var(--accent2)!important;animation:hintPulse 0.65s ease-in-out 3 alternate}
+@keyframes hintPulse{from{box-shadow:0 0 0 2px rgba(96,200,240,0.15)}to{box-shadow:0 0 0 6px rgba(96,200,240,0.5)}}
+.eff-card{background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:11px;margin:10px 0}
+.eff-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.eff-lbl{font-family:'DM Mono',monospace;font-size:0.54rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim)}
+.eff-num{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:var(--accent);min-width:54px;text-align:right;transition:color 0.5s}
+.eff-track{height:7px;background:var(--surface3);border-radius:4px;overflow:hidden;margin-bottom:7px}
+.eff-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width 0.9s cubic-bezier(0.4,0,0.2,1);width:0%}
+.eff-verdict{font-size:0.68rem;color:var(--text-mid);font-style:italic;text-align:center;min-height:14px}
+.computing{display:none;font-family:'DM Mono',monospace;font-size:0.54rem;color:var(--accent2);letter-spacing:1px;text-align:right;margin-top:-2px;margin-bottom:3px}
+.computing.on{display:block}
+.goal-toggle{width:100%;font-family:'DM Mono',monospace;font-size:0.56rem;letter-spacing:1.5px;padding:7px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text-dim);cursor:pointer;text-align:center;margin-top:4px;transition:all 0.2s}
+.goal-toggle:hover{border-color:var(--text-dim);color:var(--text)}
+.goal-preview{display:none;margin-top:8px;background:var(--surface2);border-radius:8px;padding:8px;text-align:center}
+.goal-preview.open{display:block}
+.mini-grid{display:grid;gap:2.5px;justify-content:center;margin-top:5px}
+.mini-tile{background:var(--surface3);border-radius:3px;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:0.5rem;color:var(--text-mid)}
+
+/* ============ N-QUEENS SPECIFIC ============ */
+#queens-board-wrap{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:10px;box-shadow:0 14px 50px rgba(0,0,0,0.7);display:inline-block}
+.queens-grid{display:grid}
+@keyframes queenPlace{from{transform:scale(0.4);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* ============ SUDOKU SPECIFIC ============ */
+#sudoku-wrap{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:12px;box-shadow:0 14px 50px rgba(0,0,0,0.7);display:inline-block}
+.sudoku-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:1px;background:var(--border2);border-radius:6px;overflow:hidden}
+.scell{background:var(--surface2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background 0.12s;position:relative;user-select:none;font-family:'DM Mono',monospace;font-weight:500;color:var(--text)}
+.scell.given{color:var(--accent);cursor:default;font-weight:700}
+.scell.selected{background:#2a2a44!important}
+.scell.highlight{background:#1e2230}
+.scell.conflict{color:var(--bad)!important}
+.scell.hint-cell{background:rgba(96,200,240,0.15)!important;color:var(--accent2)!important}
+.scell.box-right{border-right:2px solid var(--border2)}
+.scell.box-bottom{border-bottom:2px solid var(--border2)}
+.scell.box-flash{animation:boxFlash 0.75s cubic-bezier(0.34,1.4,0.64,1) forwards}
+@keyframes boxFlash{
+  0%  {background:#3a1a6a;color:#e0b0ff;transform:scale(1.1);z-index:5;box-shadow:0 0 12px rgba(192,96,240,0.6)}
+  45% {background:#5a2a9a;transform:scale(1.13)}
+  100%{background:var(--surface2);transform:scale(1);box-shadow:none}
+}
+.scell.row-flash{animation:rowFlash 0.65s cubic-bezier(0.34,1.4,0.64,1) forwards}
+@keyframes rowFlash{
+  0%  {background:#1a3a6a;color:#a0c8ff;transform:scale(1.08);z-index:5;box-shadow:0 0 10px rgba(96,200,240,0.5)}
+  45% {background:#1e4e9a;transform:scale(1.11)}
+  100%{background:var(--surface2);transform:scale(1);box-shadow:none}
+}
+.scell.col-flash{animation:colFlash 0.65s cubic-bezier(0.34,1.4,0.64,1) forwards}
+@keyframes colFlash{
+  0%  {background:#1a5a3a;color:#a0ffc8;transform:scale(1.08);z-index:5;box-shadow:0 0 10px rgba(96,240,192,0.5)}
+  45% {background:#1e8a5a;transform:scale(1.11)}
+  100%{background:var(--surface2);transform:scale(1);box-shadow:none}
+}
+/* number pad */
+.numpad{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:8px}
+.nkey{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 4px;text-align:center;cursor:pointer;font-family:'DM Mono',monospace;font-size:0.82rem;font-weight:500;color:var(--text);transition:all 0.15s}
+.nkey:hover{border-color:var(--purple);color:var(--purple)}
+.nkey.erase{font-size:0.62rem;color:var(--text-dim)}
+
+/* ============ MAZE SPECIFIC ============ */
+#maze-wrap{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:10px;box-shadow:0 14px 50px rgba(0,0,0,0.7);display:inline-block;max-width:100%;overflow:auto}
+#maze-canvas{display:block;border-radius:8px}
+.algo-tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:8px}
+.algo-tab{font-family:'DM Mono',monospace;font-size:0.56rem;letter-spacing:1px;padding:7px 4px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text-dim);cursor:pointer;text-align:center;transition:all 0.15s}
+.algo-tab.active-astar{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.algo-tab.active-dfs{border-color:var(--teal);color:var(--teal);background:var(--teal-dim)}
+.algo-tab.active-bfs{border-color:var(--accent2);color:var(--accent2);background:var(--accent2-dim)}
+.maze-legend{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+.legend-item{display:flex;align-items:center;gap:4px;font-family:'DM Mono',monospace;font-size:0.54rem;color:var(--text-dim)}
+.legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<!-- ============ HOME ============ -->
+<div class="screen" id="home-screen">
+  <div class="home-inner">
+    <div class="home-glow"></div>
+    <div class="home-logo">ARCADE</div>
+    <div class="home-tagline">Four puzzle games &nbsp;·&nbsp; One place &nbsp;·&nbsp; Master your mind</div>
+    <div class="game-grid">
+
+      <div class="game-card c-green" onclick="openPuzzleSetup()">
+        <div class="gc-icon">🧩</div>
+        <div class="gc-tag">Sliding Tiles</div>
+        <div class="gc-title">N-Puzzle</div>
+        <div class="gc-desc">Slide tiles into order. A* coach tracks your efficiency against the optimal solution in real time.</div>
+        <div class="gc-pills"><span class="gc-pill">⭐ A* Coach</span><span class="gc-pill">💡 Hints</span><span class="gc-pill">🤖 Auto-Solve</span></div>
+        <button class="gc-btn">Play N-Puzzle →</button>
+      </div>
+
+      <div class="game-card c-gold" onclick="openQueensSetup()">
+        <div class="gc-icon">♛</div>
+        <div class="gc-tag">Strategy Puzzle</div>
+        <div class="gc-title">N-Queens</div>
+        <div class="gc-desc">Place N queens on an N×N board so none attack each other. Classic constraint satisfaction.</div>
+        <div class="gc-pills"><span class="gc-pill">♟ 4–12 Board</span><span class="gc-pill">⚡ Backtracker</span><span class="gc-pill">💡 Safe Hints</span></div>
+        <button class="gc-btn" style="background:var(--gold);color:#111">Play N-Queens →</button>
+      </div>
+
+      <div class="game-card c-purple" onclick="openSudokuSetup()">
+        <div class="gc-icon">🔢</div>
+        <div class="gc-tag">Number Puzzle</div>
+        <div class="gc-title">Sudoku</div>
+        <div class="gc-desc">Fill a 9×9 grid so every row, column and 3×3 box contains 1–9. Constraint propagation solver built in.</div>
+        <div class="gc-pills"><span class="gc-pill">🎯 3 Difficulties</span><span class="gc-pill">💡 Hint System</span><span class="gc-pill">⚡ Auto-Solve</span></div>
+        <button class="gc-btn" style="background:var(--purple);color:#111">Play Sudoku →</button>
+      </div>
+
+      <div class="game-card c-teal" onclick="openMazeSetup()">
+        <div class="gc-icon">🌀</div>
+        <div class="gc-tag">Pathfinding</div>
+        <div class="gc-title">Maze</div>
+        <div class="gc-desc">Navigate from start to end. Watch A*, DFS, and BFS solve the same maze differently — with animated frontiers.</div>
+        <div class="gc-pills"><span class="gc-pill">⭐ A* Search</span><span class="gc-pill">🔵 BFS</span><span class="gc-pill">🟢 DFS</span><span class="gc-pill">📊 Compare</span></div>
+        <button class="gc-btn" style="background:var(--teal);color:#111">Play Maze →</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============ PUZZLE SETUP ============ -->
+<div class="screen hidden" id="puzzle-setup-screen">
+  <div class="home-inner" style="max-width:460px">
+    <div style="position:relative;z-index:1;width:100%">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+        <div style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:900;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">N-Puzzle</div>
+        <button class="back-btn" onclick="goHome()">&#8592; Arcade</button>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:26px;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+        <div style="font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:3px;text-transform:uppercase;color:var(--text-dim);margin-bottom:18px;text-align:center">Board Size</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px" id="psize-opts">
+          <div onclick="selectPSize(3)" data-sz="3" style="background:var(--accent-dim);border:2px solid var(--accent);border-radius:12px;padding:18px;text-align:center;cursor:pointer;transition:all 0.2s">
+            <div style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:900;color:var(--accent)">3×3</div>
+            <div style="font-family:'DM Mono',monospace;font-size:0.54rem;color:var(--text-dim);margin-top:3px;text-transform:uppercase;letter-spacing:1px">8-Puzzle</div>
+          </div>
+          <div onclick="selectPSize(4)" data-sz="4" style="background:var(--surface2);border:2px solid var(--border);border-radius:12px;padding:18px;text-align:center;cursor:pointer;transition:all 0.2s">
+            <div style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:900;color:var(--text)">4×4</div>
+            <div style="font-family:'DM Mono',monospace;font-size:0.54rem;color:var(--text-dim);margin-top:3px;text-transform:uppercase;letter-spacing:1px">15-Puzzle</div>
+          </div>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px">Difficulty</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:22px" id="pdiff-opts">
+          <div onclick="selectPDiff('easy')" data-d="easy" style="background:var(--surface2);border:2px solid var(--border);border-radius:9px;padding:9px 4px;text-align:center;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.76rem;color:var(--text-mid);transition:all 0.18s">Easy</div>
+          <div onclick="selectPDiff('medium')" data-d="medium" style="background:var(--accent-dim);border:2px solid var(--accent);border-radius:9px;padding:9px 4px;text-align:center;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.76rem;color:var(--accent);font-weight:600;transition:all 0.18s">Medium</div>
+          <div onclick="selectPDiff('hard')" data-d="hard" style="background:var(--surface2);border:2px solid var(--border);border-radius:9px;padding:9px 4px;text-align:center;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.76rem;color:var(--text-mid);transition:all 0.18s">Hard</div>
+          <div onclick="selectPDiff('expert')" data-d="expert" style="background:var(--surface2);border:2px solid var(--border);border-radius:9px;padding:9px 4px;text-align:center;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.76rem;color:var(--text-mid);transition:all 0.18s">Expert</div>
+        </div>
+        <button class="btn btn-green" style="padding:14px;font-size:0.92rem" onclick="startPuzzle()">Start N-Puzzle →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PUZZLE GAME ============ -->
+<div class="screen hidden" id="puzzle-screen">
+  <div class="game-wrapper">
+    <div class="game-header">
+      <div class="game-logo" style="background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">N-Puzzle</div>
+      <div class="game-badge" id="puzzle-badge"></div>
+      <button class="back-btn" onclick="goHome()">&#8592; Arcade</button>
+    </div>
+    <div class="game-body">
+      <div class="panel panel-left">
+        <div class="panel-title">Setup</div>
+        <div class="cfg-group"><div class="cfg-label">Size</div><select id="gsize"><option value="3">3×3 — 8-Puzzle</option><option value="4" selected>4×4 — 15-Puzzle</option></select></div>
+        <div class="cfg-group"><div class="cfg-label">Difficulty</div><select id="gdiff"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option><option value="expert">Expert</option></select></div>
+        <button class="btn btn-green" onclick="newPuzzle()">New Puzzle</button>
+        <div class="btn-divider"></div>
+        <button class="btn btn-blue" onclick="showPHint()">💡 Hint</button>
+        <button class="btn" id="psolve-btn" onclick="handlePSolve()">🤖 Auto-Solve</button>
+        <div class="computing" id="psolving-pill" style="color:var(--accent2);text-align:center;padding:2px">▶ solving…</div>
+        <div class="btn-divider"></div>
+        <button class="btn" onclick="undoPMove()">↩ Undo</button>
+        <button class="btn" onclick="resetPuzzle()">↺ Reset</button>
+        <button class="btn" id="pmute" onclick="toggleMute()" style="font-size:0.72rem;color:var(--text-dim)">🔊 Sound On</button>
+        <button class="goal-toggle" onclick="toggleGoal()">⊞ Goal State</button>
+        <div class="goal-preview" id="pgoal-box"><div style="font-family:'DM Mono',monospace;font-size:0.52rem;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:4px">Solved Position</div><div class="mini-grid" id="mini-grid"></div></div>
+      </div>
+      <div class="board-col">
+        <div id="board-frame"><div class="board-grid" id="board-grid"></div></div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.54rem;letter-spacing:1px;color:var(--text-dim);text-align:center">Arrow keys ↑ ↓ ← →</div>
+      </div>
+      <div class="panel panel-right">
+        <div class="panel-title">Performance</div>
+        <div class="stat-row"><span class="stat-label">Moves</span><span class="stat-val green" id="p-moves">0</span></div>
+        <div class="stat-row"><span class="stat-label">Time</span><span class="stat-val" id="p-time">0:00</span></div>
+        <div class="stat-row"><span class="stat-label">Optimal (start)</span><span class="stat-val" id="p-opt-s">—</span></div>
+        <div class="stat-row"><span class="stat-label">Optimal (now)</span><span class="stat-val blue" id="p-opt-n">—</span></div>
+        <div class="computing" id="p-computing">⟳ computing…</div>
+        <div class="eff-card">
+          <div class="eff-header"><span class="eff-lbl">Efficiency</span><span class="eff-num" id="p-eff-num">—</span></div>
+          <div class="eff-track"><div class="eff-fill" id="p-eff-fill"></div></div>
+          <div class="eff-verdict" id="p-eff-verdict">Make a move to begin</div>
+        </div>
+        <div class="coach-bubble" id="p-coach">
+          <div class="coach-main" id="p-coach-main">Ready to coach!</div>
+          <div class="coach-sub" id="p-coach-sub">Start your puzzle — I'll analyze every move.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ QUEENS SETUP ============ -->
+<div class="screen hidden" id="queens-setup-screen">
+  <div class="home-inner" style="max-width:420px">
+    <div style="position:relative;z-index:1;width:100%">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+        <div style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:900;background:linear-gradient(135deg,var(--gold),var(--warn));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">N-Queens</div>
+        <button class="back-btn" onclick="goHome()">&#8592; Arcade</button>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:26px;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+        <div style="font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:3px;text-transform:uppercase;color:var(--text-dim);margin-bottom:18px;text-align:center">Board Size</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:22px" id="qsize-opts">
+          <div onclick="selectQSize(4)" data-qn="4" style="background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:13px 6px;text-align:center;cursor:pointer;transition:all 0.18s"><div style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:900;color:var(--text)">4×4</div><div style="font-family:'DM Mono',monospace;font-size:0.5rem;color:var(--text-dim);margin-top:2px">EASY</div></div>
+          <div onclick="selectQSize(6)" data-qn="6" style="background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:13px 6px;text-align:center;cursor:pointer;transition:all 0.18s"><div style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:900;color:var(--text)">6×6</div><div style="font-family:'DM Mono',monospace;font-size:0.5rem;color:var(--text-dim);margin-top:2px">MEDIUM</div></div>
+          <div onclick="selectQSize(8)" data-qn="8" style="background:var(--gold-dim);border:2px solid var(--gold);border-radius:10px;padding:13px 6px;text-align:center;cursor:pointer;transition:all 0.18s"><div style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:900;color:var(--gold)">8×8</div><div style="font-family:'DM Mono',monospace;font-size:0.5rem;color:var(--gold);margin-top:2px">CLASSIC</div></div>
+          <div onclick="selectQSize(10)" data-qn="10" style="background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:13px 6px;text-align:center;cursor:pointer;transition:all 0.18s"><div style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:900;color:var(--text)">10×10</div><div style="font-family:'DM Mono',monospace;font-size:0.5rem;color:var(--text-dim);margin-top:2px">HARD</div></div>
+          <div onclick="selectQSize(12)" data-qn="12" style="background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:13px 6px;text-align:center;cursor:pointer;transition:all 0.18s"><div style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:900;color:var(--text)">12×12</div><div style="font-family:'DM Mono',monospace;font-size:0.5rem;color:var(--text-dim);margin-top:2px">EXPERT</div></div>
+          <div style="background:var(--surface2);border:1px dashed var(--border);border-radius:10px;padding:13px 6px;text-align:center;display:flex;align-items:center;justify-content:center"><span style="font-family:'DM Mono',monospace;font-size:0.52rem;color:var(--text-dim)">More<br>coming</span></div>
+        </div>
+        <button class="btn" style="background:var(--gold);color:#111;border:none;font-weight:700;padding:14px;font-size:0.92rem;border-radius:10px;width:100%" onclick="startQueens()">Play N-Queens →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ QUEENS GAME ============ -->
+<div class="screen hidden" id="queens-screen">
+  <div class="game-wrapper">
+    <div class="game-header">
+      <div class="game-logo" style="background:linear-gradient(135deg,var(--gold),var(--warn));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">N-Queens</div>
+      <div class="game-badge" id="q-badge"></div>
+      <button class="back-btn" onclick="goHome()">&#8592; Arcade</button>
+    </div>
+    <div class="game-body">
+      <div class="panel panel-left">
+        <div class="panel-title">Controls</div>
+        <button class="btn btn-gold" onclick="newQueens()">New Game</button>
+        <button class="btn" onclick="queensHint()">💡 Safe Square</button>
+        <button class="btn" id="q-solve-btn" onclick="queensSolve()">⚡ Show Solution</button>
+        <button class="btn" onclick="clearQueens()">🗑 Clear Board</button>
+        <button class="btn" id="qmute" onclick="toggleMute()" style="font-size:0.72rem;color:var(--text-dim)">🔊 Sound On</button>
+        <div class="btn-divider"></div>
+        <div class="cfg-label">Board Size</div>
+        <select id="q-size-sel" onchange="onQSizeChange()"><option value="4">4×4</option><option value="6">6×6</option><option value="8" selected>8×8</option><option value="10">10×10</option><option value="12">12×12</option></select>
+        <div style="margin-top:10px;font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--text-dim);line-height:1.7">Click to place/remove<br>🔴 Red = conflict<br>💡 Hint = safe cell</div>
+      </div>
+      <div class="board-col">
+        <div id="queens-board-wrap"><div class="queens-grid" id="queens-grid"></div></div>
+      </div>
+      <div class="panel panel-right">
+        <div class="panel-title">Status</div>
+        <div class="stat-row"><span class="stat-label">Placed</span><span class="stat-val gold" id="q-placed">0</span></div>
+        <div class="stat-row"><span class="stat-label">Goal</span><span class="stat-val" id="q-goal">8</span></div>
+        <div class="stat-row"><span class="stat-label">Conflicts</span><span class="stat-val" id="q-conflicts" style="color:var(--bad)">0</span></div>
+        <div class="stat-row"><span class="stat-label">Time</span><span class="stat-val" id="q-time">0:00</span></div>
+        <div style="background:var(--surface2);border-radius:10px;padding:11px;margin:10px 0;border:1px solid var(--border)">
+          <div style="font-family:'DM Mono',monospace;font-size:0.54rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);margin-bottom:5px">Progress</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:var(--gold)" id="q-placed-big">0</div>
+          <div style="font-size:0.7rem;color:var(--text-dim);margin-top:2px" id="q-prog-msg">Place your first queen!</div>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--bad);min-height:14px" id="q-conf-msg"></div>
+        <div class="coach-bubble gold" id="q-coach">
+          <div class="coach-main" id="q-coach-main">♛ Ready!</div>
+          <div class="coach-sub" id="q-coach-sub">No row, column or diagonal shared.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SUDOKU SETUP ============ -->
+<div class="screen hidden" id="sudoku-setup-screen">
+  <div class="home-inner" style="max-width:400px">
+    <div style="position:relative;z-index:1;width:100%">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+        <div style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:900;background:linear-gradient(135deg,var(--purple),#f060c8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Sudoku</div>
+        <button class="back-btn" onclick="goHome()">&#8592; Arcade</button>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:26px;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+        <div style="font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:3px;text-transform:uppercase;color:var(--text-dim);margin-bottom:18px;text-align:center">Select Difficulty</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:22px">
+          <div onclick="selectSDiff('easy')" data-sd="easy" style="background:var(--purple-dim);border:2px solid var(--purple);border-radius:12px;padding:16px 18px;cursor:pointer;transition:all 0.2s;display:flex;justify-content:space-between;align-items:center">
+            <div><div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:900;color:var(--purple)">Easy</div><div style="font-family:'DM Mono',monospace;font-size:0.54rem;color:var(--text-dim);margin-top:2px">~35 given clues</div></div>
+            <div style="font-size:1.4rem">😊</div>
+          </div>
+          <div onclick="selectSDiff('medium')" data-sd="medium" style="background:var(--surface2);border:2px solid var(--border);border-radius:12px;padding:16px 18px;cursor:pointer;transition:all 0.2s;display:flex;justify-content:space-between;align-items:center">
+            <div><div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:900;color:var(--text)">Medium</div><div style="font-family:'DM Mono',monospace;font-size:0.54rem;color:var(--text-dim);margin-top:2px">~28 given clues</div></div>
+            <div style="font-size:1.4rem">🤔</div>
+          </div>
+          <div onclick="selectSDiff('hard')" data-sd="hard" style="background:var(--surface2);border:2px solid var(--border);border-radius:12px;padding:16px 18px;cursor:pointer;transition:all 0.2s;display:flex;justify-content:space-between;align-items:center">
+            <div><div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:900;color:var(--text)">Hard</div><div style="font-family:'DM Mono',monospace;font-size:0.54rem;color:var(--text-dim);margin-top:2px">~22 given clues</div></div>
+            <div style="font-size:1.4rem">😤</div>
+          </div>
+        </div>
+        <button class="btn" style="background:var(--purple);color:#111;border:none;font-weight:700;padding:14px;font-size:0.92rem;border-radius:10px;width:100%" onclick="startSudoku()">Play Sudoku →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SUDOKU GAME ============ -->
+<div class="screen hidden" id="sudoku-screen">
+  <div class="game-wrapper">
+    <div class="game-header">
+      <div class="game-logo" style="background:linear-gradient(135deg,var(--purple),#f060c8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Sudoku</div>
+      <div class="game-badge" id="s-badge"></div>
+      <button class="back-btn" onclick="goHome()">&#8592; Arcade</button>
+    </div>
+    <div class="game-body">
+      <div class="panel panel-left">
+        <div class="panel-title">Controls</div>
+        <button class="btn btn-purple" onclick="newSudoku()">New Puzzle</button>
+        <button class="btn" onclick="sudokuHint()">💡 Hint</button>
+        <button class="btn" id="s-solve-btn" onclick="sudokuSolve()">⚡ Auto-Solve</button>
+        <button class="btn" onclick="sudokuErase()">⌫ Erase Cell</button>
+        <button class="btn" onclick="sudokuUndo()">↩ Undo</button>
+        <div class="btn-divider"></div>
+        <div class="cfg-label" style="margin-bottom:6px">Difficulty</div>
+        <select id="s-diff-sel" onchange="onSDiffChange()"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select>
+        <button class="btn" id="smute" onclick="toggleMute()" style="font-size:0.72rem;color:var(--text-dim)">🔊 Sound On</button>
+        <div style="margin-top:10px">
+          <div style="font-family:'DM Mono',monospace;font-size:0.54rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);margin-bottom:7px">Number Pad</div>
+          <div class="numpad" id="s-numpad"></div>
+        </div>
+      </div>
+      <div class="board-col">
+        <div id="sudoku-wrap"><div class="sudoku-grid" id="sudoku-grid"></div></div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.54rem;color:var(--text-dim);text-align:center">Click cell then press key 1-9 or use number pad</div>
+      </div>
+      <div class="panel panel-right">
+        <div class="panel-title">Stats</div>
+        <div class="stat-row"><span class="stat-label">Filled</span><span class="stat-val purple" id="s-filled">0</span></div>
+        <div class="stat-row"><span class="stat-label">Remaining</span><span class="stat-val" id="s-remain">81</span></div>
+        <div class="stat-row"><span class="stat-label">Mistakes</span><span class="stat-val" id="s-mistakes" style="color:var(--bad)">0</span></div>
+        <div class="stat-row"><span class="stat-label">Hints Used</span><span class="stat-val" id="s-hints">0</span></div>
+        <div class="stat-row"><span class="stat-label">Time</span><span class="stat-val" id="s-time">0:00</span></div>
+        <div style="background:var(--surface2);border-radius:10px;padding:10px;margin:10px 0;border:1px solid var(--border)">
+          <div style="font-family:'DM Mono',monospace;font-size:0.52rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);margin-bottom:5px">Progress</div>
+          <div style="height:6px;background:var(--surface3);border-radius:3px;overflow:hidden"><div id="s-prog-bar" style="height:100%;background:linear-gradient(90deg,var(--purple),#f060c8);border-radius:3px;width:0%;transition:width 0.6s"></div></div>
+          <div style="font-size:0.68rem;color:var(--text-dim);margin-top:5px" id="s-prog-msg">Start filling cells!</div>
+        </div>
+        <div class="coach-bubble purple" id="s-coach">
+          <div class="coach-main" id="s-coach-main">🔢 Ready!</div>
+          <div class="coach-sub" id="s-coach-sub">Fill 9×9 so each row, column and 3×3 box has 1–9 once.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MAZE SETUP ============ -->
+<div class="screen hidden" id="maze-setup-screen">
+  <div class="home-inner" style="max-width:440px">
+    <div style="position:relative;z-index:1;width:100%">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+        <div style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:900;background:linear-gradient(135deg,var(--teal),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Maze</div>
+        <button class="back-btn" onclick="goHome()">&#8592; Arcade</button>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:26px;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+        <div style="font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:3px;text-transform:uppercase;color:var(--text-dim);margin-bottom:18px;text-align:center">Maze Size</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:22px" id="msize-opts">
+          <div onclick="selectMSize(11)" data-ms="11" style="background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:13px 6px;text-align:center;cursor:pointer;transition:all 0.18s"><div style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:900;color:var(--text)">Small</div><div style="font-family:'DM Mono',monospace;font-size:0.5rem;color:var(--text-dim);margin-top:2px">11×11</div></div>
+          <div onclick="selectMSize(21)" data-ms="21" style="background:var(--teal-dim);border:2px solid var(--teal);border-radius:10px;padding:13px 6px;text-align:center;cursor:pointer;transition:all 0.18s"><div style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:900;color:var(--teal)">Medium</div><div style="font-family:'DM Mono',monospace;font-size:0.5rem;color:var(--teal);margin-top:2px">21×21</div></div>
+          <div onclick="selectMSize(31)" data-ms="31" style="background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:13px 6px;text-align:center;cursor:pointer;transition:all 0.18s"><div style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:900;color:var(--text)">Large</div><div style="font-family:'DM Mono',monospace;font-size:0.5rem;color:var(--text-dim);margin-top:2px">31×31</div></div>
+        </div>
+        <button class="btn" style="background:var(--teal);color:#111;border:none;font-weight:700;padding:14px;font-size:0.92rem;border-radius:10px;width:100%" onclick="startMaze()">Play Maze →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MAZE GAME ============ -->
+<div class="screen hidden" id="maze-screen">
+  <div class="game-wrapper">
+    <div class="game-header">
+      <div class="game-logo" style="background:linear-gradient(135deg,var(--teal),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Maze</div>
+      <div class="game-badge" id="m-badge"></div>
+      <button class="back-btn" onclick="goHome()">&#8592; Arcade</button>
+    </div>
+    <div class="game-body">
+      <div class="panel panel-left">
+        <div class="panel-title">Controls</div>
+        <button class="btn btn-teal" onclick="newMaze()">New Maze</button>
+        <div class="btn-divider"></div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.54rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);margin-bottom:7px">Solve With</div>
+        <div class="algo-tabs">
+          <div class="algo-tab active-astar" id="tab-astar" onclick="setAlgo('astar')">⭐ A*</div>
+          <div class="algo-tab" id="tab-dfs" onclick="setAlgo('dfs')">🌿 DFS</div>
+          <div class="algo-tab" id="tab-bfs" onclick="setAlgo('bfs')">🌊 BFS</div>
+        </div>
+        <button class="btn" id="m-solve-btn" onclick="handleMSolve()">▶ Solve</button>
+        <button class="btn" onclick="resetMazePlayer()">↺ Reset Player</button>
+        <div class="btn-divider"></div>
+        <div class="cfg-label">Maze Size</div>
+        <select id="m-size-sel" onchange="onMSizeChange()"><option value="11">Small (11×11)</option><option value="21" selected>Medium (21×21)</option><option value="31">Large (31×31)</option></select>
+        <div style="margin-top:10px;font-family:'DM Mono',monospace;font-size:0.56rem;color:var(--text-dim);line-height:1.7">
+          Arrow keys to move<br>
+          WASD also works<br><br>
+          🟢 Start &nbsp; 🔴 End
+        </div>
+      </div>
+      <div class="board-col">
+        <div id="maze-wrap"><canvas id="maze-canvas"></canvas></div>
+        <div class="maze-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#2d4a2d"></div>Wall</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--surface2)"></div>Path</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#3a6a2a"></div>Start</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#6a2a2a"></div>End</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(200,240,96,0.25)"></div>A* Explored</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(96,240,192,0.25)"></div>DFS Explored</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(96,200,240,0.25)"></div>BFS Explored</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Solution Path</div>
+        </div>
+      </div>
+      <div class="panel panel-right">
+        <div class="panel-title">Algorithm Stats</div>
+        <div class="stat-row"><span class="stat-label">Algorithm</span><span class="stat-val teal" id="m-algo-lbl">A*</span></div>
+        <div class="stat-row"><span class="stat-label">Path Length</span><span class="stat-val" id="m-path-len">—</span></div>
+        <div class="stat-row"><span class="stat-label">Cells Explored</span><span class="stat-val" id="m-explored">—</span></div>
+        <div class="stat-row"><span class="stat-label">Efficiency</span><span class="stat-val green" id="m-eff">—</span></div>
+        <div class="stat-row"><span class="stat-label">Player Steps</span><span class="stat-val teal" id="m-player-steps">0</span></div>
+        <div class="stat-row"><span class="stat-label">Time</span><span class="stat-val" id="m-time">0:00</span></div>
+        <div style="background:var(--surface2);border-radius:10px;padding:10px;margin:10px 0;border:1px solid var(--border)" id="m-compare-box">
+          <div style="font-family:'DM Mono',monospace;font-size:0.52rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px">Last Run Comparison</div>
+          <div id="m-compare-rows" style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--text-dim);line-height:2">Run each algorithm<br>to compare!</div>
+        </div>
+        <div class="coach-bubble teal" id="m-coach">
+          <div class="coach-main" id="m-coach-main">🌀 Ready!</div>
+          <div class="coach-sub" id="m-coach-sub">Use arrow keys to navigate, or press Solve to watch an algorithm find the path.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WIN OVERLAYS -->
+<div class="win-overlay" id="puzzle-win">
+  <div class="win-card">
+    <div class="win-emoji" id="pw-emoji">🏆</div>
+    <div class="win-title" id="pw-title" style="color:var(--accent)">Solved!</div>
+    <div class="win-sub" id="pw-sub">Puzzle Complete</div>
+    <div class="win-stats">
+      <div class="win-stat"><div class="win-stat-n green" id="pw-moves">0</div><div class="win-stat-l">Moves</div></div>
+      <div class="win-stat"><div class="win-stat-n green" id="pw-time">0:00</div><div class="win-stat-l">Time</div></div>
+      <div class="win-stat"><div class="win-stat-n green" id="pw-eff">—</div><div class="win-stat-l">Efficiency</div></div>
+    </div>
+    <div class="win-msg" id="pw-msg"></div>
+    <div class="win-btns"><button class="win-btn win-btn-sec" onclick="goHome()">&#8592; Arcade</button><button class="win-btn" id="pw-cta" style="background:var(--accent);color:#111" onclick="winPuzzleCTA()">New Puzzle</button></div>
+  </div>
+</div>
+<div class="win-overlay" id="queens-win">
+  <div class="win-card">
+    <div class="win-emoji">♛</div>
+    <div class="win-title" style="color:var(--gold)">Solved!</div>
+    <div class="win-sub" id="qw-sub">All Queens Placed</div>
+    <div class="win-stats">
+      <div class="win-stat"><div class="win-stat-n gold" id="qw-n">8</div><div class="win-stat-l">Queens</div></div>
+      <div class="win-stat"><div class="win-stat-n gold" id="qw-time">—</div><div class="win-stat-l">Time</div></div>
+      <div class="win-stat"><div class="win-stat-n gold" id="qw-moves">—</div><div class="win-stat-l">Placements</div></div>
+    </div>
+    <div class="win-msg" id="qw-msg"></div>
+    <div class="win-btns"><button class="win-btn win-btn-sec" onclick="goHome()">&#8592; Arcade</button><button class="win-btn" style="background:var(--gold);color:#111" onclick="newQueens()">Play Again</button></div>
+  </div>
+</div>
+<div class="win-overlay" id="sudoku-win">
+  <div class="win-card">
+    <div class="win-emoji">🔢</div>
+    <div class="win-title" style="color:var(--purple)">Solved!</div>
+    <div class="win-sub" id="sw-sub">Puzzle Complete</div>
+    <div class="win-stats">
+      <div class="win-stat"><div class="win-stat-n purple" id="sw-time">—</div><div class="win-stat-l">Time</div></div>
+      <div class="win-stat"><div class="win-stat-n purple" id="sw-mistakes">0</div><div class="win-stat-l">Mistakes</div></div>
+      <div class="win-stat"><div class="win-stat-n purple" id="sw-hints">0</div><div class="win-stat-l">Hints</div></div>
+    </div>
+    <div class="win-msg" id="sw-msg"></div>
+    <div class="win-btns"><button class="win-btn win-btn-sec" onclick="goHome()">&#8592; Arcade</button><button class="win-btn" style="background:var(--purple);color:#111" onclick="newSudoku()">Play Again</button></div>
+  </div>
+</div>
+<div class="win-overlay" id="maze-win">
+  <div class="win-card">
+    <div class="win-emoji">🌀</div>
+    <div class="win-title" style="color:var(--teal)">Escaped!</div>
+    <div class="win-sub">Maze Solved</div>
+    <div class="win-stats">
+      <div class="win-stat"><div class="win-stat-n teal" id="mw-steps">—</div><div class="win-stat-l">Steps</div></div>
+      <div class="win-stat"><div class="win-stat-n teal" id="mw-time">—</div><div class="win-stat-l">Time</div></div>
+      <div class="win-stat"><div class="win-stat-n teal" id="mw-opt">—</div><div class="win-stat-l">Optimal</div></div>
+    </div>
+    <div class="win-msg" id="mw-msg"></div>
+    <div class="win-btns"><button class="win-btn win-btn-sec" onclick="goHome()">&#8592; Arcade</button><button class="win-btn" style="background:var(--teal);color:#111" onclick="newMaze()">New Maze</button></div>
+  </div>
+</div>
+
+<div id="skill-toast">
+  <div style="font-size:1.5rem;flex-shrink:0">💀</div>
+  <div><div style="font-family:'Playfair Display',serif;font-weight:900;font-size:0.95rem;color:var(--bad)" id="toast-title">Skill issue.</div><div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--text-dim)" id="toast-sub"></div></div>
+  <div class="toast-wave"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<script>
+// ================================================================
+// SHARED
+// ================================================================
+const SCREENS=['home-screen','puzzle-setup-screen','puzzle-screen','queens-setup-screen','queens-screen','sudoku-setup-screen','sudoku-screen','maze-setup-screen','maze-screen'];
+function showScreen(id){SCREENS.forEach(s=>{const e=document.getElementById(s);if(e)e.classList.toggle('hidden',s!==id)});}
+function goHome(){
+  if(pIsSolving){pSolveCancel=true;pIsSolving=false;}
+  if(mAnimId){cancelAnimationFrame(mAnimId);clearTimeout(mAnimId);mAnimId=null;}
+  clearInterval(pTimer);clearInterval(qTimer);clearInterval(sTimer);clearInterval(mTimer);
+  document.querySelectorAll('.win-overlay').forEach(e=>e.classList.remove('show'));
+  showScreen('home-screen');
+}
+function spawnConfetti(){
+  const cols=['#c8f060','#60c8f0','#f0a060','#f06090','#a060f0','#60f0c0'];
+  for(let i=0;i<88;i++){const el=document.createElement('div');el.className='confetti-piece';const r=Math.random()>0.5;el.style.cssText=`left:${Math.random()*100}vw;top:-20px;width:${r?6:8}px;height:${r?12:8}px;border-radius:${r?2:50}%;background:${cols[Math.random()*cols.length|0]};animation-duration:${1.8+Math.random()*2.2}s;animation-delay:${Math.random()*0.8}s`;document.body.appendChild(el);setTimeout(()=>el.remove(),5000);}
+}
+let soundEnabled=true;
+let audioCtx=null;
+function getACtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx;}
+function playTick(hi=false){if(!soundEnabled)return;try{const ctx=getACtx(),now=ctx.currentTime,buf=ctx.createBuffer(1,ctx.sampleRate*0.08,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,6);const n=ctx.createBufferSource();n.buffer=buf;const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=hi?1800:1100;bp.Q.value=2.2;const g=ctx.createGain();g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(hi?0.5:0.35,now+0.003);g.gain.exponentialRampToValueAtTime(0.001,now+0.07);n.connect(bp);bp.connect(g);g.connect(ctx.destination);n.start(now);n.stop(now+0.09);}catch(e){}}
+function playWin(){if(!soundEnabled)return;try{const ctx=getACtx(),now=ctx.currentTime;[523.25,659.25,783.99,1046.5].forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain(),t=now+i*0.13;o.frequency.value=f;o.type='sine';g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.2,t+0.01);g.gain.exponentialRampToValueAtTime(0.001,t+0.45);o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+0.5);});}catch(e){}}
+function playError(){if(!soundEnabled)return;try{const ctx=getACtx(),now=ctx.currentTime,o=ctx.createOscillator(),g=ctx.createGain();o.type='sawtooth';o.frequency.setValueAtTime(220,now);o.frequency.exponentialRampToValueAtTime(80,now+0.15);g.gain.setValueAtTime(0.18,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.18);o.connect(g);g.connect(ctx.destination);o.start(now);o.stop(now+0.2);}catch(e){}}
+function toggleMute(){soundEnabled=!soundEnabled;['pmute','qmute','smute'].forEach(id=>{const b=document.getElementById(id);if(b){b.textContent=soundEnabled?'🔊 Sound On':'🔇 Muted';b.style.color=soundEnabled?'var(--text-dim)':'var(--bad)';}});}
+function speak(text,pitch=0.85,rate=0.9){if(!soundEnabled)return;try{const v=window.speechSynthesis.getVoices();const pref=['Google UK English Male','Daniel','Alex','Fred'];const voice=v.find(x=>pref.some(p=>x.name.includes(p)))||v.find(x=>x.lang.startsWith('en'))||null;const u=new SpeechSynthesisUtterance(text);if(voice)u.voice=voice;u.pitch=pitch;u.rate=rate;window.speechSynthesis.cancel();window.speechSynthesis.speak(u);}catch(e){}}
+function showToast(title,sub){document.getElementById('toast-title').textContent=title;document.getElementById('toast-sub').textContent=sub;const t=document.getElementById('skill-toast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),5000);}
+function pick(arr){return arr[Math.random()*arr.length|0];}
+function fmtTime(ms){const s=Math.floor(ms/1000);return(s/60|0)+':'+(String(s%60).padStart(2,'0'));}
+window.speechSynthesis&&window.speechSynthesis.getVoices();
+
+// ================================================================
+// N-PUZZLE
+// ================================================================
+const PDIFF_MOVES={easy:{3:15,4:18},medium:{3:50,4:55},hard:{3:140,4:120},expert:{3:400,4:300}};
+const PASTAR_LIM={3:{nodes:150000,ms:5000},4:{nodes:50000,ms:3000}};
+let pN=3,pDiff='medium';
+let pState=[],pInitState=[],pBlank=0,pMoveCount=0,pHistory=[];
+let pOptStart=null,pOptNow=null,pDisplayedEff=0,pLastTier=null;
+let pIsSolving=false,pSolveCancel=false,pSolvedByAuto=false;
+let pSkillFired=false,pTimer=null,pStartTime=null;
+let pEffAnimT=null;
+
+function openPuzzleSetup(){showScreen('puzzle-setup-screen');}
+function selectPSize(n){pN=n;document.querySelectorAll('#psize-opts>div').forEach(d=>{const a=+d.dataset.sz===n;d.style.borderColor=a?'var(--accent)':'var(--border)';d.style.background=a?'var(--accent-dim)':'var(--surface2)';d.querySelector('div').style.color=a?'var(--accent)':'var(--text)';});}
+function selectPDiff(d){pDiff=d;document.querySelectorAll('#pdiff-opts>div').forEach(b=>{const a=b.dataset.d===d;b.style.borderColor=a?'var(--accent)':'var(--border)';b.style.color=a?'var(--accent)':'var(--text-mid)';b.style.background=a?'var(--accent-dim)':'var(--surface2)';b.style.fontWeight=a?'600':'400';});}
+function startPuzzle(){document.getElementById('gsize').value=pN;document.getElementById('gdiff').value=pDiff;showScreen('puzzle-screen');newPuzzle(true);}
+
+// A* helpers
+function pNeighbors(b,n){const r=b/n|0,c=b%n,nb=[];if(r>0)nb.push(b-n);if(r<n-1)nb.push(b+n);if(c>0)nb.push(b-1);if(c<n-1)nb.push(b+1);return nb;}
+function pManhattan(s,n){let d=0;for(let i=0;i<s.length;i++){const v=s[i];if(!v)continue;d+=Math.abs(((v-1)/n|0)-(i/n|0))+Math.abs((v-1)%n-i%n);}return d;}
+function pLinearConflict(s,n){let c=0;for(let r=0;r<n;r++){for(let c1=0;c1<n-1;c1++){const v1=s[r*n+c1];if(!v1||((v1-1)/n|0)!==r)continue;for(let c2=c1+1;c2<n;c2++){const v2=s[r*n+c2];if(!v2||((v2-1)/n|0)!==r)continue;if(v1>v2)c++;}}}for(let col=0;col<n;col++){for(let r1=0;r1<n-1;r1++){const v1=s[r1*n+col];if(!v1||(v1-1)%n!==col)continue;for(let r2=r1+1;r2<n;r2++){const v2=s[r2*n+col];if(!v2||(v2-1)%n!==col)continue;if(v1>v2)c++;}}}return c*2;}
+function pH(s,n){return pManhattan(s,n)+pLinearConflict(s,n);}
+function pIsGoal(s){for(let i=0;i<s.length-1;i++)if(s[i]!==i+1)return false;return s[s.length-1]===0;}
+class MinHeap{constructor(){this.d=[]}push(x){this.d.push(x);this._up(this.d.length-1)}pop(){const t=this.d[0],l=this.d.pop();if(this.d.length){this.d[0]=l;this._dn(0)}return t}empty(){return!this.d.length}_up(i){while(i>0){const p=(i-1)>>1;if(this.d[p].f<=this.d[i].f)break;[this.d[p],this.d[i]]=[this.d[i],this.d[p]];i=p}}_dn(i){const n=this.d.length;for(;;){let m=i,l=2*i+1,r=2*i+2;if(l<n&&this.d[l].f<this.d[m].f)m=l;if(r<n&&this.d[r].f<this.d[m].f)m=r;if(m===i)break;[this.d[m],this.d[i]]=[this.d[i],this.d[m]];i=m}}}
+function astar(init,n){const lim=PASTAR_LIM[n]||PASTAR_LIM[4];const h0=pH(init,n);if(!h0)return{path:[],optimal:0};const heap=new MinHeap(),vis=new Map();heap.push({f:h0,g:0,state:init,blank:init.indexOf(0),parent:null,mv:-1});const t0=performance.now();let exp=0;while(!heap.empty()){if(performance.now()-t0>lim.ms||exp>lim.nodes)return null;const nd=heap.pop();exp++;const key=nd.state.join(',');if(vis.has(key)&&vis.get(key)<=nd.g)continue;vis.set(key,nd.g);if(pIsGoal(nd.state)){const path=[];let c=nd;while(c.mv!==-1){path.unshift(c.mv);c=c.parent;}return{path,optimal:nd.g};}for(const nb of pNeighbors(nd.blank,n)){const ns=nd.state.slice();ns[nd.blank]=ns[nb];ns[nb]=0;const nk=ns.join(','),ng=nd.g+1;if(vis.has(nk)&&vis.get(nk)<=ng)continue;heap.push({f:ng+pH(ns,n),g:ng,state:ns,blank:nb,parent:nd,mv:nb});}}return null;}
+
+function generatePuzzle(n,diff){const k=(PDIFF_MOVES[diff]||PDIFF_MOVES.medium)[n]||60;const s=Array.from({length:n*n},(_,i)=>i<n*n-1?i+1:0);let bl=n*n-1,prev=-1;for(let i=0;i<k;i++){const nb=pNeighbors(bl,n).filter(x=>x!==prev);const nx=nb[Math.random()*nb.length|0];s[bl]=s[nx];s[nx]=0;prev=bl;bl=nx;}return{state:s,blank:bl};}
+function pTileSize(){const mw=Math.min(window.innerWidth-90,430);return Math.max(36,Math.min(Math.floor((mw-(pN+1)*7)/pN),96));}
+
+function renderPBoard(){
+  const grid=document.getElementById('board-grid');grid.innerHTML='';
+  const ts=pTileSize();
+  grid.style.gridTemplateColumns=`repeat(${pN},${ts}px)`;
+  const movable=pNeighbors(pBlank,pN);
+  for(let i=0;i<pState.length;i++){
+    const v=pState[i],el=document.createElement('div');
+    el.className='tile'+(v===0?' blank':movable.includes(i)?' movable':'');
+    el.style.cssText=`width:${ts}px;height:${ts}px;font-size:${ts*(pN===4?0.31:0.37)}px`;
+    if(v!==0){el.textContent=v;el.addEventListener('click',()=>pHandleClick(i));}
+    grid.appendChild(el);
+  }
+  // mini goal
+  const mg=document.getElementById('mini-grid');mg.innerHTML='';
+  const mt=Math.max(12,50/pN|0);mg.style.gridTemplateColumns=`repeat(${pN},${mt}px)`;
+  for(let i=0;i<pN*pN;i++){const el=document.createElement('div');el.className='mini-tile';el.style.cssText=`width:${mt}px;height:${mt}px`;el.textContent=i<pN*pN-1?i+1:'';mg.appendChild(el);}
+}
+
+function toggleGoal(){document.getElementById('pgoal-box').classList.toggle('open');}
+function pHandleClick(idx){if(pIsSolving)return;if(!pNeighbors(pBlank,pN).includes(idx))return;pDoMove(idx);}
+
+function pDoMove(idx,noHist=false){
+  if(!noHist)pHistory.push({state:pState.slice(),blank:pBlank});
+  pAnimSlide(idx,pBlank);
+  pState[pBlank]=pState[idx];pState[idx]=0;pBlank=idx;pMoveCount++;
+  if(!pStartTime){pStartTime=Date.now();pTimer=setInterval(()=>{document.getElementById('p-time').textContent=fmtTime(Date.now()-pStartTime);},1000);}
+  const solved=pIsGoal(pState);
+  playTick(solved);
+  renderPBoard();
+  document.getElementById('p-moves').textContent=pMoveCount;
+  if(!pIsSolving)pScheduleAstar();
+  if(!pIsSolving&&!pSkillFired&&pOptStart&&pMoveCount>=pOptStart*2)pFireSkillIssue();
+  if(solved){clearInterval(pTimer);pOptNow=0;playWin();setTimeout(()=>showPWin(pSolvedByAuto),400);}
+}
+
+function pAnimSlide(from,to){
+  const grid=document.getElementById('board-grid'),tile=grid.children[from];if(!tile)return;
+  const ts=pTileSize()+7,dr=(from/pN|0)-(to/pN|0),dc=from%pN-to%pN;
+  tile.style.transition='none';tile.style.transform=`translate(${-dc*ts}px,${-dr*ts}px)`;
+  requestAnimationFrame(()=>{tile.style.transition='transform 0.17s cubic-bezier(0.4,0,0.2,1)';tile.style.transform='translate(0,0)';});
+}
+
+let pAstarQueued=false;
+function pScheduleAstar(){if(pAstarQueued)return;pAstarQueued=true;document.getElementById('p-computing').classList.add('on');setTimeout(()=>{pAstarQueued=false;const r=astar(pState.slice(),pN);pOptNow=r?r.optimal:null;document.getElementById('p-computing').classList.remove('on');document.getElementById('p-opt-n').textContent=pOptNow!=null?pOptNow:'?';pUpdateStats();},10);}
+
+function pUpdateStats(){
+  document.getElementById('p-opt-s').textContent=pOptStart!=null?pOptStart:'—';
+  if(pMoveCount===0||pOptStart==null||pOptNow==null)return;
+  const progress=pOptStart-pOptNow,excess=Math.max(0,pMoveCount-progress);
+  const eff=Math.round(Math.max(0,Math.min(100,pOptStart/(pOptStart+excess)*100)));
+  pAnimEff(eff);pUpdateCoach(eff);
+}
+
+function pAnimEff(target){
+  if(pEffAnimT){clearInterval(pEffAnimT);pEffAnimT=null;}
+  const ne=document.getElementById('p-eff-num'),fe=document.getElementById('p-eff-fill'),ve=document.getElementById('p-eff-verdict');
+  fe.style.width=target+'%';
+  const from=pDisplayedEff,diff=target-from,steps=45;let step=0;
+  pEffAnimT=setInterval(()=>{step++;const p=step/steps,eased=1-Math.pow(1-p,3),cur=Math.round(from+diff*eased);ne.textContent=cur+'%';ne.style.color=cur>=90?'var(--accent)':cur>=70?'var(--accent2)':cur>=50?'var(--warn)':'var(--bad)';if(step>=steps){clearInterval(pEffAnimT);pEffAnimT=null;pDisplayedEff=target;ve.style.opacity='0';setTimeout(()=>{ve.textContent=target>=95?'Optimal play 🌟':target>=85?'Excellent ✨':target>=70?'Good progress 👍':target>=50?'Some detours 🔄':'Many extra moves ⚠';ve.style.opacity='1';},200);}},33);}
+
+const PMSGS={perfect:{m:['🌟 Flawless!','💎 Optimal!'],s:['Every move was optimal. Suspicious.','A* would do exactly this.']},excellent:{m:['🔥 Excellent!','⚡ Near-optimal!'],s:['Almost perfect. Did you peek?','Chess grandmaster energy.']},good:{m:['👍 Good!','🙂 Going well!'],s:['Not bad. A few detours.','You know what you\'re doing... mostly.']},okay:{m:['🤔 Getting there...','⚠ Detours!'],s:['Are you solving it or exploring every dead end?','Scenic route. Consider Hint.']},poor:{m:['😬 Hmm...','❌ Many detours!'],s:['Bold strategy. I can\'t identify a plan.','Use Hint. Please. I\'m begging you.']}};
+function pUpdateCoach(eff){
+  let tier=eff>=98?'perfect':eff>=85?'excellent':eff>=70?'good':eff>=50?'okay':'poor';
+  const b=document.getElementById('p-coach'),m=document.getElementById('p-coach-main'),s=document.getElementById('p-coach-sub');
+  b.className='coach-bubble '+(tier==='perfect'||tier==='excellent'?'':tier==='good'?'blue':tier==='okay'?'warn':'bad');
+  if(tier!==pLastTier||pMoveCount%4===0){pLastTier=tier;m.textContent=pick(PMSGS[tier].m);s.style.opacity='0';setTimeout(()=>{s.textContent=pick(PMSGS[tier].s);s.style.opacity='1';},700);}
+}
+
+const PROASTS=['Ha ha! Couldn\'t figure it out?','Giving up already? Ha ha.','Ha ha! Next time maybe.','Too hard? Ha ha. Don\'t worry.','Ha ha! Should\'ve used a hint.'];
+function pFireSkillIssue(){
+  if(pSkillFired||pIsSolving)return;pSkillFired=true;
+  showToast('Skill issue.',`Optimal was ${pOptStart} moves. You've taken ${pMoveCount}.`);
+  setTimeout(()=>speak('Skill issue.'),200);
+}
+
+function newPuzzle(keepSettings=false){
+  document.getElementById('puzzle-win').classList.remove('show');
+  if(!keepSettings){pN=parseInt(document.getElementById('gsize').value);}
+  const diff=document.getElementById('gdiff').value;
+  const gen=generatePuzzle(pN,diff);
+  pState=gen.state;pBlank=gen.blank;pInitState=pState.slice();
+  pMoveCount=0;pHistory=[];pOptStart=null;pOptNow=null;pDisplayedEff=0;pLastTier=null;pSolvedByAuto=false;pSkillFired=false;
+  clearInterval(pTimer);pStartTime=null;pIsSolving=false;pSolveCancel=false;
+  ['p-moves','p-opt-s','p-opt-n'].forEach(id=>document.getElementById(id).textContent='—');
+  document.getElementById('p-moves').textContent='0';
+  document.getElementById('p-time').textContent='0:00';
+  document.getElementById('p-eff-num').textContent='—';document.getElementById('p-eff-fill').style.width='0%';
+  document.getElementById('p-eff-verdict').textContent='Make a move to begin';
+  document.getElementById('p-coach-main').textContent='Ready to coach!';document.getElementById('p-coach-sub').textContent='Make your first move.';
+  document.getElementById('p-coach').className='coach-bubble';
+  document.getElementById('psolve-btn').textContent='🤖 Auto-Solve';
+  document.getElementById('puzzle-badge').textContent=`${pN}×${pN} · ${pN===3?'8':'15'}-Puzzle · ${diff.toUpperCase()}`;
+  renderPBoard();
+  document.getElementById('p-computing').classList.add('on');
+  setTimeout(()=>{const r=astar(pState.slice(),pN);pOptStart=r?r.optimal:null;pOptNow=pOptStart;document.getElementById('p-computing').classList.remove('on');document.getElementById('p-opt-s').textContent=pOptStart!=null?pOptStart:'?';document.getElementById('p-opt-n').textContent=pOptNow!=null?pOptNow:'?';},20);
+}
+
+function resetPuzzle(){if(pIsSolving){pSolveCancel=true;pIsSolving=false;}pState=pInitState.slice();pBlank=pState.indexOf(0);pMoveCount=0;pHistory=[];clearInterval(pTimer);pStartTime=null;pOptNow=pOptStart;pDisplayedEff=0;pLastTier=null;pSkillFired=false;document.getElementById('p-moves').textContent='0';document.getElementById('p-time').textContent='0:00';document.getElementById('p-eff-num').textContent='—';document.getElementById('p-eff-fill').style.width='0%';document.getElementById('p-eff-verdict').textContent='Make a move to begin';renderPBoard();}
+function undoPMove(){if(!pHistory.length||pIsSolving)return;const prev=pHistory.pop();pState=prev.state;pBlank=prev.blank;pMoveCount=Math.max(0,pMoveCount-1);renderPBoard();document.getElementById('p-moves').textContent=pMoveCount;pScheduleAstar();}
+function showPHint(){if(pIsGoal(pState))return;const r=astar(pState.slice(),pN);if(!r||!r.path.length)return;const grid=document.getElementById('board-grid'),el=grid.children[r.path[0]];if(!el)return;el.classList.add('hint-tile');setTimeout(()=>el.classList.remove('hint-tile'),1900);}
+function handlePSolve(){if(pIsSolving){pSolveCancel=true;return;}autoSolvePuzzle();}
+
+const PGAVEUP=['Ha ha! Couldn\'t figure it out?','Giving up already? Ha ha.','Ha ha! Let the machine handle it.','Ha ha! Should\'ve used a hint.'];
+async function autoSolvePuzzle(){
+  const r=astar(pState.slice(),pN);
+  if(!r||!r.path.length){if(pIsGoal(pState))return;document.getElementById('p-coach-main').textContent='⚠ Too complex to auto-solve.';return;}
+  if(pOptStart&&pMoveCount>pOptStart){const t=pick(PGAVEUP);document.getElementById('p-coach-main').textContent='😂 '+t;document.getElementById('p-coach-sub').textContent=`Optimal: ${pOptStart}. You took ${pMoveCount} and gave up.`;document.getElementById('p-coach').className='coach-bubble bad';setTimeout(()=>speak(t),120);}
+  pIsSolving=true;pSolveCancel=false;pSolvedByAuto=true;pSkillFired=true;
+  document.getElementById('psolving-pill').classList.add('on');document.getElementById('psolve-btn').textContent='⏹ Stop';
+  for(const ti of r.path){if(pSolveCancel)break;await new Promise(r=>setTimeout(r,290));if(!pIsGoal(pState))pDoMove(ti,false);}
+  pIsSolving=false;document.getElementById('psolving-pill').classList.remove('on');document.getElementById('psolve-btn').textContent='🤖 Auto-Solve';
+}
+
+function showPWin(auto){
+  const eff=pOptStart&&pMoveCount>0?Math.round(Math.min(100,pOptStart/pMoveCount*100)):100;
+  document.getElementById('pw-moves').textContent=pMoveCount;
+  document.getElementById('pw-time').textContent=fmtTime(Date.now()-pStartTime);
+  document.getElementById('pw-eff').textContent=eff+'%';
+  if(auto){document.getElementById('pw-emoji').textContent='🤖';document.getElementById('pw-sub').textContent='Auto-Solved by A*';document.getElementById('pw-msg').textContent=`Optimal ${pMoveCount}-move solution. Try beating it!`;document.getElementById('pw-cta').textContent='Try It Yourself →';}
+  else if(eff>=95){document.getElementById('pw-emoji').textContent='💎';document.getElementById('pw-sub').textContent='Perfect Efficiency!';document.getElementById('pw-msg').textContent=`Optimal: ${pOptStart}. Used: ${pMoveCount}. Incredible!`;document.getElementById('pw-cta').textContent='New Puzzle';}
+  else{document.getElementById('pw-emoji').textContent='🏆';document.getElementById('pw-sub').textContent='Puzzle Complete!';document.getElementById('pw-msg').textContent=`Optimal: ${pOptStart}. Used: ${pMoveCount}. Efficiency: ${eff}%.`;document.getElementById('pw-cta').textContent=eff<70?'Try Again':'New Puzzle';}
+  document.getElementById('puzzle-win').classList.add('show');
+  if(!auto)spawnConfetti();
+}
+function winPuzzleCTA(){document.getElementById('puzzle-win').classList.remove('show');newPuzzle();}
+
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('puzzle-screen').classList.contains('hidden'))return;
+  if(pIsSolving)return;
+  const map={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]};
+  const mv=map[e.key];if(!mv)return;e.preventDefault();
+  const br=pBlank/pN|0,bc=pBlank%pN,tr=br+mv[0],tc=bc+mv[1];
+  if(tr<0||tr>=pN||tc<0||tc>=pN)return;pDoMove(tr*pN+tc);
+});
+
+// ================================================================
+// N-QUEENS
+// ================================================================
+let qN=8,qBoard=[],qPlaced=0,qMoves=0,qTimer=null,qStartTime=null;
+
+function openQueensSetup(){showScreen('queens-setup-screen');}
+function selectQSize(n){qN=n;document.querySelectorAll('#qsize-opts>div').forEach(d=>{if(!d.dataset.qn)return;const a=+d.dataset.qn===n;d.style.borderColor=a?'var(--gold)':'var(--border)';d.style.background=a?'var(--gold-dim)':'var(--surface2)';d.querySelector('div').style.color=a?'var(--gold)':'var(--text)';});}
+function startQueens(){document.getElementById('q-size-sel').value=qN;showScreen('queens-screen');document.getElementById('q-badge').textContent=`${qN}×${qN} · N-QUEENS`;newQueens();}
+function onQSizeChange(){qN=parseInt(document.getElementById('q-size-sel').value);document.getElementById('q-badge').textContent=`${qN}×${qN} · N-QUEENS`;newQueens();}
+
+function newQueens(){document.getElementById('queens-win').classList.remove('show');qBoard=Array(qN).fill(-1);qPlaced=0;qMoves=0;clearInterval(qTimer);qStartTime=null;document.getElementById('q-time').textContent='0:00';document.getElementById('q-solve-btn').textContent='⚡ Show Solution';renderQBoard();qUpdateStats();}
+function clearQueens(){qBoard=Array(qN).fill(-1);qPlaced=0;renderQBoard();qUpdateStats();}
+
+function qConflicts(r,c,board){for(let row=0;row<board.length;row++){if(row===r)continue;const col=board[row];if(col<0)continue;if(col===c||Math.abs(row-r)===Math.abs(col-c))return true;}return false;}
+function qGetConflictCells(){const s=new Set();for(let r=0;r<qN;r++){if(qBoard[r]<0)continue;for(let r2=0;r2<qN;r2++){if(r2===r||qBoard[r2]<0)continue;const c1=qBoard[r],c2=qBoard[r2];if(c1===c2||Math.abs(r-r2)===Math.abs(c1-c2)){s.add(r*qN+c1);s.add(r2*qN+c2);}}}return s;}
+function qCountConflicts(){let c=0;for(let r=0;r<qN;r++){if(qBoard[r]<0)continue;for(let r2=r+1;r2<qN;r2++){if(qBoard[r2]<0)continue;const c1=qBoard[r],c2=qBoard[r2];if(c1===c2||Math.abs(r-r2)===Math.abs(c1-c2))c++;}}return c;}
+function qSolve(n){const res=Array(n).fill(-1);function bt(row){if(row===n)return true;for(let col=0;col<n;col++){res[row]=col;if(!qConflicts(row,col,res.map((c,i)=>i<row?c:-1).concat(Array(n-row).fill(-1)))){if(bt(row+1))return true;}res[row]=-1;}return false;}bt(0);return res;}
+
+function qCellSize(){const avail=Math.min(window.innerWidth-100,460);return Math.max(26,Math.min(Math.floor(avail/qN),62));}
+
+function renderQBoard(){
+  const grid=document.getElementById('queens-grid');grid.innerHTML='';
+  const cs=qCellSize();
+  grid.style.gridTemplateColumns=`repeat(${qN},${cs}px)`;
+  const conflicts=qGetConflictCells();
+  for(let r=0;r<qN;r++){
+    for(let c=0;c<qN;c++){
+      const idx=r*qN+c,isDark=(r+c)%2===1,hasQ=qBoard[r]===c,isConf=hasQ&&conflicts.has(idx),isAtk=!hasQ&&conflicts.has(idx);
+      const el=document.createElement('div');el.dataset.r=r;el.dataset.c=c;
+      let bg=isDark?'#1e2030':'#252840';if(isAtk)bg=isDark?'#2a1a1a':'#321f1f';
+      let css=`width:${cs}px;height:${cs}px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:4px;transition:background 0.12s;position:relative;background:${bg};user-select:none;`;
+      if(isAtk)css+=`box-shadow:inset 0 0 0 1px rgba(240,96,96,0.22);`;
+      if(hasQ){
+        css+=`font-size:${Math.round(cs*0.68)}px;color:${isConf?'#ff4d4d':'#f0c060'};text-shadow:0 2px 10px ${isConf?'rgba(255,77,77,0.45)':'rgba(240,192,96,0.4)'};line-height:1;`;
+        if(isConf)css+=`box-shadow:inset 0 0 0 2px rgba(255,77,77,0.55);`;
+        el.textContent='\u265B';el.style.cssText=css;el.style.animation='none';
+        requestAnimationFrame(()=>{el.style.animation='queenPlace 0.22s cubic-bezier(0.34,1.5,0.64,1) both';});
+      } else {
+        el.style.cssText=css;
+        el.addEventListener('mouseenter',()=>{el.style.background=isDark?'#2a2a44':'#303050';});
+        el.addEventListener('mouseleave',()=>{el.style.background=bg;});
+      }
+      el.addEventListener('click',()=>onQClick(r,c));
+      grid.appendChild(el);
+    }
+  }
+}
+
+function onQClick(r,c){
+  if(!qStartTime){qStartTime=Date.now();qTimer=setInterval(()=>document.getElementById('q-time').textContent=fmtTime(Date.now()-qStartTime),1000);}
+  if(qBoard[r]===c){qBoard[r]=-1;qPlaced--;playTick(false);}
+  else{if(qBoard[r]>=0)qPlaced--;qBoard[r]=c;qPlaced++;qMoves++;const conf=qConflicts(r,c,qBoard);playTick(false);if(conf)playError();}
+  renderQBoard();qUpdateStats();
+  if(qPlaced===qN&&qCountConflicts()===0){clearInterval(qTimer);setTimeout(showQWin,400);}
+}
+
+function qUpdateStats(){
+  const conf=qCountConflicts();
+  document.getElementById('q-placed').textContent=qPlaced;document.getElementById('q-goal').textContent=qN;
+  document.getElementById('q-placed-big').textContent=qPlaced+' / '+qN;
+  document.getElementById('q-conflicts').textContent=conf;
+  const rem=qN-qPlaced;
+  document.getElementById('q-prog-msg').textContent=qPlaced===0?'Place your first queen!':conf>0?`${conf} conflict${conf>1?'s':''} — fix them`:rem>0?`${rem} more queen${rem>1?'s':''} to go!`:'All placed, no conflicts!';
+  document.getElementById('q-conf-msg').textContent=conf>0?`⚠ ${conf} queen${conf>1?'s are':' is'} attacking each other`:'';
+  const b=document.getElementById('q-coach'),m=document.getElementById('q-coach-main'),s=document.getElementById('q-coach-sub');
+  if(conf===0&&qPlaced===qN){m.textContent='🏆 Perfect!';s.textContent='All queens placed with no conflicts!';b.className='coach-bubble gold';}
+  else if(conf>0){m.textContent=`❌ ${conf} conflict${conf>1?'s':''}!`;s.textContent='Move or remove the attacking queens.';b.className='coach-bubble bad';}
+  else if(qPlaced>0){m.textContent='✅ No conflicts yet!';s.textContent=`Keep going — ${rem} more needed.`;b.className='coach-bubble gold';}
+  else{m.textContent='♛ Ready!';s.textContent='No row, column or diagonal shared.';b.className='coach-bubble gold';}
+}
+
+function queensHint(){
+  for(let r=0;r<qN;r++){if(qBoard[r]>=0)continue;for(let c=0;c<qN;c++){const tmp=qBoard.slice();tmp[r]=c;if(!qConflicts(r,c,tmp)){const grid=document.getElementById('queens-grid'),el=grid.children[r*qN+c];if(el){el.style.boxShadow='0 0 0 3px var(--accent) inset';el.style.background='rgba(200,240,96,0.18)';setTimeout(()=>{el.style.boxShadow='';el.style.background='';},2000);}document.getElementById('q-coach-sub').textContent=`Row ${r+1}, col ${c+1} is safe!`;return;}}}}
+function queensSolve(){const b=document.getElementById('q-solve-btn');if(b.textContent.includes('Reset')){newQueens();return;}const sol=qSolve(qN);if(!sol||sol.some(x=>x<0))return;qBoard=sol.slice();qPlaced=qN;b.textContent='↺ Reset';renderQBoard();qUpdateStats();playWin();}
+function showQWin(){
+  document.getElementById('qw-n').textContent=qN;document.getElementById('qw-time').textContent=fmtTime(Date.now()-qStartTime);document.getElementById('qw-moves').textContent=qMoves;
+  document.getElementById('qw-msg').textContent=qMoves<=qN+2?'Incredibly efficient! Almost no backtracking.':qMoves<=qN*2?'Great solve! Minimal mistakes.':'You got there! Try again for fewer moves.';
+  document.getElementById('queens-win').classList.add('show');spawnConfetti();playWin();
+}
+
+// ================================================================
+// SUDOKU
+// ================================================================
+let sDiff='medium',sGrid=[],sSolution=[],sGiven=new Set(),sSelected=-1,sMistakes=0,sHintsUsed=0,sTimer=null,sStartTime=null,sHistory=[];
+
+function openSudokuSetup(){showScreen('sudoku-setup-screen');}
+function selectSDiff(d){sDiff=d;document.querySelectorAll('[data-sd]').forEach(el=>{const a=el.dataset.sd===d;el.style.borderColor=a?'var(--purple)':'var(--border)';el.style.background=a?'var(--purple-dim)':'var(--surface2)';el.querySelector('div>div').style.color=a?'var(--purple)':'var(--text)';});}
+function startSudoku(){document.getElementById('s-diff-sel').value=sDiff;showScreen('sudoku-screen');document.getElementById('s-badge').textContent='9×9 · SUDOKU · '+sDiff.toUpperCase();newSudoku();}
+function onSDiffChange(){sDiff=document.getElementById('s-diff-sel').value;document.getElementById('s-badge').textContent='9×9 · SUDOKU · '+sDiff.toUpperCase();newSudoku();}
+
+// Generate a full valid sudoku using backtracking
+function sGenFull(){
+  const g=Array.from({length:81},()=>0);
+  function canPlace(g,pos,num){const r=pos/9|0,c=pos%9,br=r/3|0,bc=c/3|0;for(let i=0;i<9;i++){if(g[r*9+i]===num||g[i*9+c]===num||g[(br*3+(i/3|0))*9+(bc*3+i%3)]===num)return false;}return true;}
+  function bt(pos){if(pos===81)return true;const nums=[1,2,3,4,5,6,7,8,9].sort(()=>Math.random()-0.5);for(const n of nums){if(canPlace(g,pos,n)){g[pos]=n;if(bt(pos+1))return true;g[pos]=0;}}return false;}
+  bt(0);return g;
+}
+
+// Remove cells to create puzzle based on difficulty
+function sCreatePuzzle(full,diff){
+  const remove={easy:46,medium:53,hard:59}[diff]||53;
+  const puzzle=full.slice();const positions=[...Array(81).keys()].sort(()=>Math.random()-0.5);
+  for(let i=0;i<remove;i++){const pos=positions[i];puzzle[pos]=0;}
+  return puzzle;
+}
+
+function newSudoku(){
+  document.getElementById('sudoku-win').classList.remove('show');
+  const full=sGenFull();sSolution=full.slice();
+  const puzzle=sCreatePuzzle(full,sDiff);
+  sGrid=puzzle.slice();sGiven=new Set();
+  for(let i=0;i<81;i++)if(puzzle[i]!==0)sGiven.add(i);
+  sSelected=-1;sMistakes=0;sHintsUsed=0;sHistory=[];
+  sCompleteRows=new Set();sCompleteCols=new Set();sCompleteBoxes=new Set();
+  clearInterval(sTimer);sStartTime=null;
+  document.getElementById('s-mistakes').textContent='0';document.getElementById('s-hints').textContent='0';document.getElementById('s-time').textContent='0:00';
+  document.getElementById('s-badge').textContent='9×9 · SUDOKU · '+sDiff.toUpperCase();
+  renderSGrid();buildNumpad();sUpdateStats();
+}
+
+function renderSGrid(){
+  const grid=document.getElementById('sudoku-grid');grid.innerHTML='';
+  const ww=Math.min(window.innerWidth-90,500),cs=Math.max(32,Math.min(Math.floor((ww-10)/9),52));
+  for(let i=0;i<81;i++){
+    const r=i/9|0,c=i%9,el=document.createElement('div');el.className='scell';
+    el.style.cssText=`width:${cs}px;height:${cs}px;font-size:${Math.round(cs*0.42)}px;`;
+    if(sGiven.has(i))el.classList.add('given');
+    if(i===sSelected)el.classList.add('selected');
+    // highlight same row/col/box as selected
+    if(sSelected>=0&&i!==sSelected){const sr=sSelected/9|0,sc=sSelected%9;if(r===sr||c===sc||(r/3|0)===(sr/3|0)&&(c/3|0)===(sc/3|0))el.classList.add('highlight');}
+    // box borders
+    if(c===2||c===5)el.classList.add('box-right');
+    if(r===2||r===5)el.classList.add('box-bottom');
+    if(sGrid[i]!==0){
+      el.textContent=sGrid[i];
+      // conflict check
+      if(!sGiven.has(i)&&sGrid[i]!==sSolution[i])el.classList.add('conflict');
+    }
+    el.addEventListener('click',()=>sSelectCell(i));
+    grid.appendChild(el);
+  }
+}
+
+function playCompletionSound(type){
+  // type: 'row' (blue arp), 'col' (green arp), 'box' (purple arp)
+  if(!soundEnabled)return;
+  try{
+    const ctx=getACtx(),now=ctx.currentTime;
+    const freqs={row:[523,659,784],col:[392,523,659],box:[659,784,1047]};
+    const cols={row:'rgba(96,200,240,',col:'rgba(96,240,192,',box:'rgba(192,96,240,'};
+    const notes=freqs[type]||freqs.box;
+    notes.forEach((f,i)=>{
+      const o=ctx.createOscillator(),g=ctx.createGain(),t=now+i*0.1;
+      o.type='sine';o.frequency.setValueAtTime(f,t);
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.22,t+0.01);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.35);
+      o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+0.38);
+    });
+    // extra sparkle on box
+    if(type==='box'){const o=ctx.createOscillator(),g=ctx.createGain(),t=now+0.28;o.type='sine';o.frequency.setValueAtTime(1319,t);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.14,t+0.01);g.gain.exponentialRampToValueAtTime(0.001,t+0.28);o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+0.3);}
+  }catch(e){}
+}
+
+// Track which rows/cols/boxes were already complete before this move
+let sCompleteRows=new Set(), sCompleteCols=new Set(), sCompleteBoxes=new Set();
+
+function sIsUnitComplete(cells){return cells.every(i=>sGrid[i]===sSolution[i]);}
+
+function sCheckCompletions(){
+  const grid=document.getElementById('sudoku-grid');
+  if(!grid)return;
+  const newRows=[],newCols=[],newBoxes=[];
+
+  // Check rows
+  for(let r=0;r<9;r++){
+    const cells=Array.from({length:9},(_,c)=>r*9+c);
+    if(sIsUnitComplete(cells)&&!sCompleteRows.has(r)){sCompleteRows.add(r);newRows.push(r);}
+  }
+  // Check cols
+  for(let c=0;c<9;c++){
+    const cells=Array.from({length:9},(_,r)=>r*9+c);
+    if(sIsUnitComplete(cells)&&!sCompleteCols.has(c)){sCompleteCols.add(c);newCols.push(c);}
+  }
+  // Check 3x3 boxes
+  for(let b=0;b<9;b++){
+    const br=Math.floor(b/3)*3,bc=(b%3)*3;
+    const cells=[];for(let dr=0;dr<3;dr++)for(let dc=0;dc<3;dc++)cells.push((br+dr)*9+(bc+dc));
+    if(sIsUnitComplete(cells)&&!sCompleteBoxes.has(b)){sCompleteBoxes.add(b);newBoxes.push(b);}
+  }
+
+  if(!newRows.length&&!newCols.length&&!newBoxes.length)return;
+
+  // Apply flashes with staggered delays so they don't all fire at once
+  let delay=0;
+  const flashDelay=120;
+
+  newRows.forEach(r=>{
+    setTimeout(()=>{
+      playCompletionSound('row');
+      for(let c=0;c<9;c++){const el=grid.children[r*9+c];if(el){el.classList.remove('row-flash');void el.offsetWidth;el.classList.add('row-flash');}}
+      // Coach message
+      document.getElementById('s-coach-main').textContent='🔵 Row '+(r+1)+' complete!';
+      document.getElementById('s-coach-sub').textContent='Nice work — that row is done.';
+      document.getElementById('s-coach').className='coach-bubble blue';
+    },delay);
+    delay+=flashDelay;
+  });
+
+  newCols.forEach(c=>{
+    setTimeout(()=>{
+      playCompletionSound('col');
+      for(let r=0;r<9;r++){const el=grid.children[r*9+c];if(el){el.classList.remove('col-flash');void el.offsetWidth;el.classList.add('col-flash');}}
+      document.getElementById('s-coach-main').textContent='🟢 Column '+(c+1)+' complete!';
+      document.getElementById('s-coach-sub').textContent='Column cleared — keep going!';
+      document.getElementById('s-coach').className='coach-bubble teal';
+    },delay);
+    delay+=flashDelay;
+  });
+
+  newBoxes.forEach(b=>{
+    setTimeout(()=>{
+      playCompletionSound('box');
+      const br=Math.floor(b/3)*3,bc=(b%3)*3;
+      for(let dr=0;dr<3;dr++)for(let dc=0;dc<3;dc++){const el=grid.children[(br+dr)*9+(bc+dc)];if(el){el.classList.remove('box-flash');void el.offsetWidth;el.classList.add('box-flash');}}
+      document.getElementById('s-coach-main').textContent='🟣 Box complete!';
+      document.getElementById('s-coach-sub').textContent='3×3 box '+(b+1)+' is solved!';
+      document.getElementById('s-coach').className='coach-bubble purple';
+    },delay);
+    delay+=flashDelay;
+  });
+}
+
+function sSelectCell(idx){if(sGiven.has(idx))return;sSelected=idx;renderSGrid();}
+
+function sPlaceNum(num){
+  if(sSelected<0||sGiven.has(sSelected))return;
+  if(!sStartTime){sStartTime=Date.now();sTimer=setInterval(()=>document.getElementById('s-time').textContent=fmtTime(Date.now()-sStartTime),1000);}
+  sHistory.push({idx:sSelected,prev:sGrid[sSelected]});
+  sGrid[sSelected]=num;
+  if(num!==0&&num!==sSolution[sSelected]){sMistakes++;document.getElementById('s-mistakes').textContent=sMistakes;playError();}
+  else if(num===sSolution[sSelected]){playTick(false);renderSGrid();sCheckCompletions();}
+  if(num===0||num!==sSolution[sSelected])renderSGrid();
+  sUpdateStats();
+  if(sCheckWin()){clearInterval(sTimer);setTimeout(showSWin,400);}
+}
+
+function sudokuErase(){if(sSelected>=0&&!sGiven.has(sSelected)){sHistory.push({idx:sSelected,prev:sGrid[sSelected]});sGrid[sSelected]=0;renderSGrid();sUpdateStats();}}
+function sudokuUndo(){if(!sHistory.length)return;const h=sHistory.pop();sGrid[h.idx]=h.prev;renderSGrid();sUpdateStats();}
+
+function sudokuHint(){
+  if(sSelected<0){document.getElementById('s-coach-sub').textContent='Select a cell first.';return;}
+  if(sGiven.has(sSelected)){document.getElementById('s-coach-sub').textContent='That cell is given.';return;}
+  sHistory.push({idx:sSelected,prev:sGrid[sSelected]});
+  sGrid[sSelected]=sSolution[sSelected];sHintsUsed++;
+  document.getElementById('s-hints').textContent=sHintsUsed;
+  // flash hint
+  const grid=document.getElementById('sudoku-grid');const el=grid.children[sSelected];if(el){el.classList.add('hint-cell');setTimeout(()=>{el.classList.remove('hint-cell');renderSGrid();},1000);}
+  playTick(true);sUpdateStats();sCheckCompletions();
+  if(sCheckWin()){clearInterval(sTimer);setTimeout(showSWin,400);}
+}
+
+function sudokuSolve(){
+  // fill all empty cells with solution
+  for(let i=0;i<81;i++){if(!sGiven.has(i))sGrid[i]=sSolution[i];}
+  renderSGrid();sUpdateStats();
+  document.getElementById('s-coach-main').textContent='⚡ Board solved!';document.getElementById('s-coach-sub').textContent='Here\'s the complete solution.';
+  clearInterval(sTimer);setTimeout(showSWin,500);
+}
+
+function sCheckWin(){for(let i=0;i<81;i++)if(sGrid[i]!==sSolution[i])return false;return true;}
+
+function sUpdateStats(){
+  let filled=0,correct=0;for(let i=0;i<81;i++){if(sGrid[i]!==0)filled++;if(sGrid[i]===sSolution[i])correct++;}
+  document.getElementById('s-filled').textContent=filled;document.getElementById('s-remain').textContent=81-correct;
+  const pct=Math.round(correct/81*100);
+  document.getElementById('s-prog-bar').style.width=pct+'%';
+  document.getElementById('s-prog-msg').textContent=pct===100?'Complete!':pct>80?`${81-correct} cells left!`:pct>50?`${correct}/81 correct — keep going!`:`${correct}/81 filled correctly`;
+  const b=document.getElementById('s-coach'),m=document.getElementById('s-coach-main'),s=document.getElementById('s-coach-sub');
+  if(correct===81){m.textContent='🏆 Perfect!';s.textContent='All cells filled correctly!';b.className='coach-bubble purple';}
+  else if(sMistakes===0&&correct>0){m.textContent='✅ No mistakes yet!';s.textContent=`${81-correct} cells remaining.`;b.className='coach-bubble purple';}
+  else if(sMistakes>3){m.textContent=`⚠ ${sMistakes} mistakes!`;s.textContent='Check for conflicts before placing.';b.className='coach-bubble bad';}
+  else if(sMistakes>0){m.textContent=`🤔 ${sMistakes} mistake${sMistakes>1?'s':''}.`;s.textContent='Stay focused — think before placing!';b.className='coach-bubble warn';}
+  else{m.textContent='🔢 Keep going!';s.textContent='No hints needed so far. ';b.className='coach-bubble purple';}
+}
+
+function buildNumpad(){
+  const np=document.getElementById('s-numpad');np.innerHTML='';
+  for(let n=1;n<=9;n++){const el=document.createElement('div');el.className='nkey';el.textContent=n;el.addEventListener('click',()=>sPlaceNum(n));np.appendChild(el);}
+  const er=document.createElement('div');er.className='nkey erase';er.textContent='⌫ Erase';er.style.gridColumn='span 1';er.addEventListener('click',()=>sPlaceNum(0));np.appendChild(er);
+}
+
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('sudoku-screen').classList.contains('hidden'))return;
+  if(sSelected<0)return;
+  if(e.key>='1'&&e.key<='9'){e.preventDefault();sPlaceNum(parseInt(e.key));}
+  else if(e.key==='Backspace'||e.key==='Delete'){e.preventDefault();sPlaceNum(0);}
+  // arrow navigation
+  else if(e.key==='ArrowRight'&&sSelected%9<8){sSelectCell(sSelected+1);e.preventDefault();}
+  else if(e.key==='ArrowLeft'&&sSelected%9>0){sSelectCell(sSelected-1);e.preventDefault();}
+  else if(e.key==='ArrowDown'&&sSelected<72){sSelectCell(sSelected+9);e.preventDefault();}
+  else if(e.key==='ArrowUp'&&sSelected>=9){sSelectCell(sSelected-9);e.preventDefault();}
+});
+
+function showSWin(){
+  document.getElementById('sw-time').textContent=sStartTime?fmtTime(Date.now()-sStartTime):'—';
+  document.getElementById('sw-mistakes').textContent=sMistakes;document.getElementById('sw-hints').textContent=sHintsUsed;
+  let msg=sMistakes===0&&sHintsUsed===0?'Flawless! No mistakes, no hints. You\'re a Sudoku master.':sMistakes===0?`No mistakes! Used ${sHintsUsed} hint${sHintsUsed>1?'s':''}.`:`${sMistakes} mistake${sMistakes>1?'s':''} and ${sHintsUsed} hint${sHintsUsed>1?'s':''}. Not bad!`;
+  document.getElementById('sw-msg').textContent=msg;
+  document.getElementById('sudoku-win').classList.add('show');spawnConfetti();playWin();
+}
+
+window.addEventListener('resize',()=>{
+  if(!document.getElementById('puzzle-screen').classList.contains('hidden'))renderPBoard();
+  if(!document.getElementById('queens-screen').classList.contains('hidden'))renderQBoard();
+  if(!document.getElementById('sudoku-screen').classList.contains('hidden'))renderSGrid();
+  if(!document.getElementById('maze-screen').classList.contains('hidden'))renderMaze();
+});
+
+// ================================================================
+// MAZE PATHFINDER
+// ================================================================
+let mSize=21,mGrid=[],mStart={r:1,c:1},mEnd,mPlayer={r:1,c:1};
+let mAlgo='astar',mTimer=null,mStartTime=null,mPlayerSteps=0;
+let mAnimId=null,mSolveStats={};
+const WALL=1,PATH=0;
+// Colors
+const MCOLS={wall:'#1a2010',path:'#14141c',start:'rgba(96,200,96,0.25)',end:'rgba(200,96,96,0.25)',playerExplored:'rgba(200,240,96,0.08)',astarExpl:'rgba(200,240,96,0.18)',dfsExpl:'rgba(96,240,192,0.18)',bfsExpl:'rgba(96,200,240,0.18)',solution:'rgba(200,240,96,0.55)',player:'#c8f060',startDot:'#60c860',endDot:'#c86060'};
+
+function openMazeSetup(){showScreen('maze-setup-screen');}
+function selectMSize(n){mSize=n;document.querySelectorAll('#msize-opts>div').forEach(d=>{const a=+d.dataset.ms===n;d.style.borderColor=a?'var(--teal)':'var(--border)';d.style.background=a?'var(--teal-dim)':'var(--surface2)';d.querySelector('div').style.color=a?'var(--teal)':'var(--text)';});}
+function startMaze(){document.getElementById('m-size-sel').value=mSize;showScreen('maze-screen');document.getElementById('m-badge').textContent=`${mSize}×${mSize} · MAZE · PATHFINDER`;newMaze();}
+function onMSizeChange(){mSize=parseInt(document.getElementById('m-size-sel').value);document.getElementById('m-badge').textContent=`${mSize}×${mSize} · MAZE · PATHFINDER`;newMaze();}
+
+// Generate maze using recursive backtracker (DFS)
+function generateMaze(rows,cols){
+  const grid=Array.from({length:rows},()=>Array(cols).fill(WALL));
+  function carve(r,c){
+    grid[r][c]=PATH;
+    const dirs=[[0,2],[0,-2],[2,0],[-2,0]].sort(()=>Math.random()-0.5);
+    for(const[dr,dc]of dirs){const nr=r+dr,nc=c+dc;if(nr>0&&nr<rows-1&&nc>0&&nc<cols-1&&grid[nr][nc]===WALL){grid[r+dr/2][c+dc/2]=PATH;carve(nr,nc);}}
+  }
+  carve(1,1);
+  // Ensure end is reachable
+  grid[rows-2][cols-2]=PATH;grid[rows-2][cols-3]=PATH;grid[rows-3][cols-2]=PATH;
+  return grid;
+}
+
+function newMaze(){
+  if(mAnimId){cancelAnimationFrame(mAnimId);clearTimeout(mAnimId);mAnimId=null;}
+  document.getElementById('maze-win').classList.remove('show');
+  mGrid=generateMaze(mSize,mSize);
+  mStart={r:1,c:1};mEnd={r:mSize-2,c:mSize-2};mPlayer={r:1,c:1};
+  mPlayerSteps=0;mSolveStats={};clearInterval(mTimer);mStartTime=null;
+  document.getElementById('m-player-steps').textContent='0';document.getElementById('m-time').textContent='0:00';
+  document.getElementById('m-path-len').textContent='—';document.getElementById('m-explored').textContent='—';document.getElementById('m-eff').textContent='—';
+  document.getElementById('m-compare-rows').innerHTML='Run each algorithm<br>to compare!';
+  document.getElementById('m-solve-btn').textContent='▶ Solve';
+  document.getElementById('m-coach-main').textContent='🌀 New maze!';document.getElementById('m-coach-sub').textContent='Use arrow keys/WASD to navigate, or press Solve.';
+  mVis=new Set();mSolutionPath=[];mExploredCells=[];
+  renderMaze();
+}
+
+let mVis=new Set(),mSolutionPath=[],mExploredCells=[];
+
+function getCellSize(){const avail=Math.min(window.innerWidth-100,520);return Math.max(10,Math.min(Math.floor(avail/mSize),24));}
+
+function renderMaze(exploredSet=null,solutionSet=null,playerPos=null){
+  const canvas=document.getElementById('maze-canvas');
+  const cs=getCellSize(),rows=mSize,cols=mSize;
+  canvas.width=cs*cols;canvas.height=cs*rows;
+  const ctx=canvas.getContext('2d');
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const isWall=mGrid[r][c]===WALL;
+      ctx.fillStyle=isWall?MCOLS.wall:MCOLS.path;
+      ctx.fillRect(c*cs,r*cs,cs,cs);
+      // explored overlay
+      if(!isWall&&exploredSet&&exploredSet.has(r*cols+c)){
+        ctx.fillStyle=mAlgo==='astar'?MCOLS.astarExpl:mAlgo==='dfs'?MCOLS.dfsExpl:MCOLS.bfsExpl;
+        ctx.fillRect(c*cs,r*cs,cs,cs);
+      }
+      // solution path
+      if(!isWall&&solutionSet&&solutionSet.has(r*cols+c)){ctx.fillStyle=MCOLS.solution;ctx.fillRect(c*cs,r*cs,cs,cs);}
+    }
+  }
+  // start/end markers
+  const {r:sr,c:sc}=mStart,{r:er,c:ec}=mEnd;
+  ctx.fillStyle=MCOLS.start;ctx.fillRect(sc*cs,sr*cs,cs,cs);
+  ctx.fillStyle=MCOLS.end;ctx.fillRect(ec*cs,er*cs,cs,cs);
+  // start/end dots
+  ctx.fillStyle=MCOLS.startDot;ctx.beginPath();ctx.arc(sc*cs+cs/2,sr*cs+cs/2,cs*0.25,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=MCOLS.endDot;ctx.beginPath();ctx.arc(ec*cs+cs/2,er*cs+cs/2,cs*0.25,0,Math.PI*2);ctx.fill();
+  // player
+  const pp=playerPos||mPlayer;
+  ctx.fillStyle=MCOLS.player;ctx.beginPath();ctx.arc(pp.c*cs+cs/2,pp.r*cs+cs/2,cs*0.35,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(200,240,96,0.3)';ctx.beginPath();ctx.arc(pp.c*cs+cs/2,pp.r*cs+cs/2,cs*0.5,0,Math.PI*2);ctx.fill();
+}
+
+// A* for maze
+function mazeAstar(){
+  const rows=mSize,cols=mSize;
+  function h(r,c){return Math.abs(r-mEnd.r)+Math.abs(c-mEnd.c);}
+  const open=new MinHeap();const cameFrom=new Map();const gScore=new Map();
+  const startKey=mStart.r*cols+mStart.c;open.push({f:h(mStart.r,mStart.c),g:0,r:mStart.r,c:mStart.c});
+  gScore.set(startKey,0);const explored=[];
+  while(!open.empty()){
+    const nd=open.pop();const k=nd.r*cols+nd.c;if(nd.g>gScore.get(k))continue;
+    explored.push(k);
+    if(nd.r===mEnd.r&&nd.c===mEnd.c){const path=[];let cur=k;while(cameFrom.has(cur)){path.unshift(cur);cur=cameFrom.get(cur);}path.unshift(startKey);return{path,explored};}
+    for(const[dr,dc]of[[0,1],[0,-1],[1,0],[-1,0]]){const nr=nd.r+dr,nc=nd.c+dc;if(nr<0||nr>=rows||nc<0||nc>=cols||mGrid[nr][nc]===WALL)continue;const nk=nr*cols+nc,ng=nd.g+1;if(ng<(gScore.get(nk)??Infinity)){gScore.set(nk,ng);cameFrom.set(nk,k);open.push({f:ng+h(nr,nc),g:ng,r:nr,c:nc});}}
+  }
+  return{path:[],explored};
+}
+
+// DFS for maze
+function mazeDFS(){
+  const rows=mSize,cols=mSize,startKey=mStart.r*cols+mStart.c,endKey=mEnd.r*cols+mEnd.c;
+  const stack=[startKey],visited=new Set([startKey]),cameFrom=new Map(),explored=[];
+  while(stack.length){
+    const k=stack.pop();explored.push(k);
+    if(k===endKey){const path=[];let cur=k;while(cameFrom.has(cur)){path.unshift(cur);cur=cameFrom.get(cur);}path.unshift(startKey);return{path,explored};}
+    const r=k/cols|0,c=k%cols;
+    for(const[dr,dc]of[[0,1],[1,0],[0,-1],[-1,0]]){const nr=r+dr,nc=c+dc;if(nr<0||nr>=rows||nc<0||nc>=cols||mGrid[nr][nc]===WALL)continue;const nk=nr*cols+nc;if(!visited.has(nk)){visited.add(nk);cameFrom.set(nk,k);stack.push(nk);}}
+  }
+  return{path:[],explored};
+}
+
+// BFS for maze
+function mazeBFS(){
+  const rows=mSize,cols=mSize,startKey=mStart.r*cols+mStart.c,endKey=mEnd.r*cols+mEnd.c;
+  const queue=[startKey],visited=new Set([startKey]),cameFrom=new Map(),explored=[];
+  while(queue.length){
+    const k=queue.shift();explored.push(k);
+    if(k===endKey){const path=[];let cur=k;while(cameFrom.has(cur)){path.unshift(cur);cur=cameFrom.get(cur);}path.unshift(startKey);return{path,explored};}
+    const r=k/cols|0,c=k%cols;
+    for(const[dr,dc]of[[0,1],[1,0],[0,-1],[-1,0]]){const nr=r+dr,nc=c+dc;if(nr<0||nr>=rows||nc<0||nc>=cols||mGrid[nr][nc]===WALL)continue;const nk=nr*cols+nc;if(!visited.has(nk)){visited.add(nk);cameFrom.set(nk,k);queue.push(nk);}}
+  }
+  return{path:[],explored};
+}
+
+function setAlgo(a){
+  mAlgo=a;
+  document.getElementById('tab-astar').className='algo-tab'+(a==='astar'?' active-astar':'');
+  document.getElementById('tab-dfs').className='algo-tab'+(a==='dfs'?' active-dfs':'');
+  document.getElementById('tab-bfs').className='algo-tab'+(a==='bfs'?' active-bfs':'');
+  document.getElementById('m-algo-lbl').textContent=a==='astar'?'A*':a==='dfs'?'DFS':'BFS';
+  document.getElementById('m-algo-lbl').style.color=a==='astar'?'var(--accent)':a==='dfs'?'var(--teal)':'var(--accent2)';
+  // reset visualization
+  mSolutionPath=[];mExploredCells=[];renderMaze();
+  document.getElementById('m-path-len').textContent='—';document.getElementById('m-explored').textContent='—';document.getElementById('m-eff').textContent='—';
+  document.getElementById('m-solve-btn').textContent='▶ Solve';
+}
+
+let mSolving=false;
+function handleMSolve(){
+  if(mSolving){mSolving=false;document.getElementById('m-solve-btn').textContent='▶ Solve';return;}
+  if(mAnimId){cancelAnimationFrame(mAnimId);clearTimeout(mAnimId);mAnimId=null;}
+  let result;
+  if(mAlgo==='astar')result=mazeAstar();
+  else if(mAlgo==='dfs')result=mazeDFS();
+  else result=mazeBFS();
+  if(!result.path.length){document.getElementById('m-coach-main').textContent='⚠ No path found!';return;}
+  const{path,explored}=result;
+  mSolveStats[mAlgo]={path:path.length,explored:explored.length};
+  updateMCompare();
+  document.getElementById('m-path-len').textContent=path.length;document.getElementById('m-explored').textContent=explored.length;
+  const eff=Math.round(path.length/explored.length*100);document.getElementById('m-eff').textContent=eff+'%';
+  document.getElementById('m-coach-main').textContent=mAlgo==='astar'?'⭐ A* — optimal path!':mAlgo==='dfs'?'🌿 DFS — deep dive!':'🌊 BFS — guaranteed shortest!';
+  document.getElementById('m-coach-sub').textContent=`Path: ${path.length} cells. Explored: ${explored.length}. Efficiency: ${eff}%.`;
+  // animate — A* is fast, DFS/BFS are deliberately slower so you can watch the frontier
+  mSolving=true;document.getElementById('m-solve-btn').textContent='⏹ Stop';
+  const isAstar=mAlgo==='astar';
+  // A*: finish in ~120 rAF frames. DFS/BFS: 2 cells per frame + 18ms delay so frontier is visible
+  const exploredChunk=isAstar?Math.max(1,Math.floor(explored.length/120)):2;
+  const frameDelay=isAstar?0:18; // ms between frames for DFS/BFS
+  let step=0;const exploredSet=new Set(),pathSet=new Set();
+  function animate(){
+    if(!mSolving){renderMaze(exploredSet,pathSet);return;}
+    for(let i=0;i<exploredChunk&&step<explored.length;i++,step++)exploredSet.add(explored[step]);
+    renderMaze(exploredSet,null);
+    if(step<explored.length){
+      if(frameDelay>0)mAnimId=setTimeout(()=>requestAnimationFrame(animate),frameDelay);
+      else mAnimId=requestAnimationFrame(animate);
+      return;
+    }
+    // show path — also slower for DFS/BFS
+    const pathChunk=isAstar?3:1;
+    const pathDelay=isAstar?0:28;
+    let pStep=0;
+    function animPath(){
+      if(!mSolving){renderMaze(exploredSet,pathSet);return;}
+      for(let i=0;i<pathChunk&&pStep<path.length;i++,pStep++)pathSet.add(path[pStep]);
+      renderMaze(exploredSet,pathSet);
+      if(pStep<path.length){
+        if(pathDelay>0)mAnimId=setTimeout(()=>requestAnimationFrame(animPath),pathDelay);
+        else mAnimId=requestAnimationFrame(animPath);
+        return;
+      }
+      mSolving=false;document.getElementById('m-solve-btn').textContent='▶ Solve';playWin();
+    }
+    mAnimId=requestAnimationFrame(animPath);
+  }
+  mAnimId=requestAnimationFrame(animate);
+}
+
+function updateMCompare(){
+  const box=document.getElementById('m-compare-rows');
+  const algos=[['astar','⭐ A*','var(--accent)'],['dfs','🌿 DFS','var(--teal)'],['bfs','🌊 BFS','var(--accent2)']];
+  let html='';
+  for(const[key,label,col]of algos){
+    if(!mSolveStats[key]){html+=`<div style="color:var(--text-dim)">${label}: not run yet</div>`;continue;}
+    const{path,explored}=mSolveStats[key];html+=`<div style="color:${col}">${label}: path ${path} / explored ${explored}</div>`;
+  }
+  box.innerHTML=html;
+}
+
+function resetMazePlayer(){mPlayer={r:mStart.r,c:mStart.c};mPlayerSteps=0;clearInterval(mTimer);mStartTime=null;document.getElementById('m-player-steps').textContent='0';document.getElementById('m-time').textContent='0:00';renderMaze(mExploredCells.length?new Set(mExploredCells):null,mSolutionPath.length?new Set(mSolutionPath):null);}
+
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('maze-screen').classList.contains('hidden'))return;
+  const map={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1],w:[-1,0],s:[1,0],a:[0,-1],d:[0,1],W:[-1,0],S:[1,0],A:[0,-1],D:[0,1]};
+  const mv=map[e.key];if(!mv)return;
+  e.preventDefault();
+  const nr=mPlayer.r+mv[0],nc=mPlayer.c+mv[1];
+  if(nr<0||nr>=mSize||nc<0||nc>=mSize||mGrid[nr][nc]===WALL)return;
+  if(!mStartTime){mStartTime=Date.now();mTimer=setInterval(()=>document.getElementById('m-time').textContent=fmtTime(Date.now()-mStartTime),1000);}
+  mPlayer={r:nr,c:nc};mPlayerSteps++;
+  document.getElementById('m-player-steps').textContent=mPlayerSteps;
+  playTick(false);
+  renderMaze(null,null,mPlayer);
+  if(mPlayer.r===mEnd.r&&mPlayer.c===mEnd.c){
+    clearInterval(mTimer);
+    const aResult=mazeAstar();const optimal=aResult.path.length;
+    document.getElementById('mw-steps').textContent=mPlayerSteps;document.getElementById('mw-time').textContent=fmtTime(Date.now()-mStartTime);document.getElementById('mw-opt').textContent=optimal;
+    document.getElementById('mw-msg').textContent=mPlayerSteps<=optimal+2?'🌟 Nearly optimal! You found almost the best path!':mPlayerSteps<=optimal*1.5?'👍 Good route! Close to the optimal path.':'✅ You found the exit! A* path was '+optimal+' steps.';
+    setTimeout(()=>{document.getElementById('maze-win').classList.add('show');spawnConfetti();playWin();},300);
+  }
+});
+</script>
+</body>
+</html>
